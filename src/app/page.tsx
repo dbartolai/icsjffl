@@ -1,16 +1,21 @@
-import { LeagueHeader } from "@/components/LeagueHeader";
+import Link from "next/link";
 import { StandingsTable } from "@/components/StandingsTable";
 import { MatchupCard } from "@/components/MatchupCard";
 import { TeamCard } from "@/components/TeamCard";
 import { getLeagueData } from "@/lib/league";
 import { EspnError } from "@/lib/espn/client";
+import { getRecordBookData } from "@/lib/record-book";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   let data;
+  let seasonRecords = null;
   try {
-    data = await getLeagueData();
+    [data, seasonRecords] = await Promise.all([
+      getLeagueData(),
+      getRecordBookData(2026).catch(() => null),
+    ]);
   } catch (error) {
     if (!(error instanceof EspnError)) throw error;
     return (
@@ -42,7 +47,39 @@ export default async function Home() {
   );
   return (
     <main id="main" className="shell">
-      <LeagueHeader {...data} />
+      {seasonRecords ? (
+        <section className="record-chronicle home-chronicle">
+          <div>
+            <p className="editorial-kicker">THE 2026 LEAGUE CHRONICLE</p>
+            <h1>{seasonRecords.headline.title}</h1>
+            <p>{seasonRecords.headline.summary}</p>
+            <Link className="button chronicle-link" href="/history">
+              Explore the record book
+            </Link>
+          </div>
+          <div className="chronicle-score">
+            <span>Season&apos;s largest margin</span>
+            <strong>
+              {seasonRecords.blowoutLeaders[0]?.value.toFixed(1) ?? "—"}
+            </strong>
+            <p>
+              {seasonRecords.blowoutLeaders[0]?.team ?? league.name} · Week{" "}
+              {seasonRecords.blowoutLeaders[0]?.week ?? league.currentWeek}
+            </p>
+            <small>ESPN connected · Week {league.currentWeek}</small>
+          </div>
+        </section>
+      ) : (
+        <header className="league-header">
+          <div>
+            <p className="eyebrow">
+              <span className="accent-line" /> FANTASY FOOTBALL / {league.season}
+            </p>
+            <h1>{league.name}</h1>
+            <p className="muted">Your league. Every matchup. All in one place.</p>
+          </div>
+        </header>
+      )}
       {source === "mock" && (
         <aside className="demo-banner">
           <span className="demo-banner-label">DEMO LEAGUE</span>

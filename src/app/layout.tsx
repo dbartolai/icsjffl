@@ -1,10 +1,14 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import { SiteHeader } from "@/components/design/SiteHeader";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ICSJ FFL | League dashboard",
-  description: "Your fantasy football league, standings, and weekly matchups.",
+  title: {
+    default: "ICSJ FFL",
+    template: "%s | ICSJ FFL",
+  },
+  description:
+    "Ten seasons of ICSJ fantasy football history, records, and weekly stories.",
 };
 
 export default function RootLayout({
@@ -18,24 +22,7 @@ export default function RootLayout({
         <a href="#main" className="skip-link">
           Skip to content
         </a>
-        <div className="topbar">
-          <div className="shell topbar-inner">
-            <Link className="brand" href="/" aria-label="ICSJ FFL home">
-              <span className="brand-icon" aria-hidden="true">
-                Ⅲ
-              </span>
-              ICSJ<span className="muted font-normal">FFL</span>
-            </Link>
-            <nav aria-label="Dashboard sections">
-              <Link href="/#standings">Standings</Link>
-              <Link href="/#matchups">Matchups</Link>
-              <Link href="/#teams">Teams</Link>
-            </nav>
-            <span className="season-label">
-              SEASON <strong>2026</strong>
-            </span>
-          </div>
-        </div>
+        <SiteHeader />
         {children}
       </body>
     </html>
