@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -18,10 +19,14 @@ export function SiteHeader() {
     <header className="topbar">
       <div className="shell topbar-inner">
         <Link className="brand" href="/" aria-label="ICSJ FFL home">
-          <span className="brand-monogram" aria-hidden="true">
-            I
-          </span>
-          <span>ICSJ FFL</span>
+          <Image
+            className="brand-logo"
+            src="/icsjffl-logo.png"
+            alt=""
+            width={58}
+            height={58}
+            priority
+          />
           <span className="brand-year">Year 10</span>
         </Link>
         <nav className="primary-nav" aria-label="Primary navigation">

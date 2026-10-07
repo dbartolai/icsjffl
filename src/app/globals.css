@@ -57,24 +57,10 @@ a:focus-visible, button:focus-visible, select:focus-visible {
 .brand {
   align-items: center;
   display: flex;
-  font-size: 20px;
-  font-weight: 800;
-  gap: 10px;
-  letter-spacing: -0.5px;
+  gap: 8px;
   white-space: nowrap;
 }
-.brand-monogram {
-  align-items: center;
-  background: var(--navy);
-  border-radius: 9px 9px 14px 14px;
-  color: #fff;
-  display: inline-flex;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 20px;
-  height: 38px;
-  justify-content: center;
-  width: 34px;
-}
+.brand-logo { height: 58px; object-fit: contain; width: 58px; }
 .brand-year { color: var(--muted); font-size: 14px; font-weight: 500; margin-left: 2px; }
 .primary-nav { align-items: stretch; display: flex; gap: 4px; }
 .primary-nav a, .primary-nav > span {
@@ -335,8 +321,7 @@ footer { border-top: 1px solid var(--line); color: var(--muted); display: flex; 
 
 @media (max-width: 640px) {
   .shell { width: calc(100% - 28px); }
-  .brand { font-size: 17px; }
-  .brand-monogram { height: 32px; width: 29px; }
+  .brand-logo { height: 48px; width: 48px; }
   .season-switcher { display: none; }
   .primary-nav > span[aria-disabled="true"] { display: none; }
   .league-header { align-items: flex-start; flex-direction: column; padding-top: 32px; }
