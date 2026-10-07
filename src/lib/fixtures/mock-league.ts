@@ -1,0 +1,118 @@
+import type { FantasyLeague } from "@/types/fantasy";
+
+const teams = [
+  {
+    name: "Sunday Syndicate",
+    abbreviation: "SUN",
+    manager: "Alex Morgan",
+    wins: 3,
+    pointsFor: 412.82,
+    pointsAgainst: 321.44,
+  },
+  {
+    name: "Fourth & Goal",
+    abbreviation: "4TH",
+    manager: "Jordan Davis",
+    wins: 2,
+    pointsFor: 389.16,
+    pointsAgainst: 344.7,
+  },
+  {
+    name: "Windy City Warriors",
+    abbreviation: "WCW",
+    manager: "Sam Rivera",
+    wins: 2,
+    pointsFor: 376.54,
+    pointsAgainst: 359.12,
+  },
+  {
+    name: "The Waiver Wire",
+    abbreviation: "WW",
+    manager: "Taylor Brooks",
+    wins: 2,
+    pointsFor: 362.9,
+    pointsAgainst: 351.86,
+  },
+  {
+    name: "Red Zone Renegades",
+    abbreviation: "RZR",
+    manager: "Casey Lee",
+    wins: 1,
+    pointsFor: 351.86,
+    pointsAgainst: 362.9,
+  },
+  {
+    name: "Gridiron Garage",
+    abbreviation: "GG",
+    manager: "Drew Parker",
+    wins: 1,
+    pointsFor: 359.12,
+    pointsAgainst: 376.54,
+  },
+  {
+    name: "Monday Miracles",
+    abbreviation: "MM",
+    manager: "Jamie Ellis",
+    wins: 1,
+    pointsFor: 344.7,
+    pointsAgainst: 389.16,
+  },
+  {
+    name: "End Zone Club",
+    abbreviation: "EZC",
+    manager: "Riley Quinn",
+    wins: 0,
+    pointsFor: 321.44,
+    pointsAgainst: 412.82,
+  },
+];
+
+// Fictional league, managers, records, and scores. Never presented as ESPN data.
+export const mockLeague: FantasyLeague = {
+  id: "demo",
+  name: "The Sunday League",
+  season: 2026,
+  currentWeek: 4,
+  teams: teams.map((team, index) => ({
+    ...team,
+    id: String(index + 1),
+    rank: index + 1,
+    losses: 3 - team.wins,
+    ties: 0,
+    roster: [],
+  })),
+  matchups: [
+    {
+      id: "1",
+      week: 4,
+      homeTeamId: "1",
+      awayTeamId: "2",
+      homeScore: 112.48,
+      awayScore: 98.32,
+    },
+    {
+      id: "2",
+      week: 4,
+      homeTeamId: "3",
+      awayTeamId: "4",
+      homeScore: 87.64,
+      awayScore: 103.18,
+    },
+    {
+      id: "3",
+      week: 4,
+      homeTeamId: "5",
+      awayTeamId: "6",
+      homeScore: 94.26,
+      awayScore: 91.5,
+    },
+    {
+      id: "4",
+      week: 4,
+      homeTeamId: "7",
+      awayTeamId: "8",
+      homeScore: 106.82,
+      awayScore: 78.94,
+    },
+  ],
+};
