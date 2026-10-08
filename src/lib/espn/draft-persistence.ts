@@ -2,14 +2,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DraftHistoryRow } from "./draft-history";
 
-type Query = PromiseLike<{ error: unknown }> & {
-  delete: () => Query;
-  eq: (column: string, value: string | number) => Query;
-  upsert: (rows: unknown, options: { onConflict: string }) => Promise<{ error: unknown }>;
-};
-
 export type DraftHistoryStore = {
-  from: (table: "players" | "league_draft_picks") => Query;
+  rpc: (
+    functionName: string,
+    arguments_: Record<string, unknown>,
+  ) => Promise<{ error: unknown }>;
 };
 
 export type DraftImportCounts = {
@@ -99,30 +96,17 @@ export async function persistDraftHistory(
   for (const seasonRows of seasons.values()) validateSeason(seasonRows, options.expectedPickCount);
 
   const draftStore = store as DraftHistoryStore;
-  const players = playerRows(rows);
-  for (let offset = 0; offset < players.length; offset += 250) {
-    throwIfError(
-      await draftStore.from("players").upsert(players.slice(offset, offset + 250), {
-        onConflict: "espn_player_id",
-      }),
-    );
-  }
-
   for (const seasonRows of seasons.values()) {
-    const { leagueId, season } = seasonRows[0];
     throwIfError(
-      await draftStore
-        .from("league_draft_picks")
-        .delete()
-        .eq("league_id", leagueId)
-        .eq("season", season),
-    );
-    throwIfError(
-      await draftStore.from("league_draft_picks").upsert(pickRows(seasonRows), {
-        onConflict: "league_id,season,overall_pick",
+      await draftStore.rpc("replace_draft_season_snapshot", {
+        p_players: playerRows(seasonRows),
+        p_picks: pickRows(seasonRows),
       }),
     );
   }
-
-  return { players: players.length, picks: rows.length, seasons: seasons.size };
+  return {
+    players: new Set(rows.map((row) => row.espnPlayerId)).size,
+    picks: rows.length,
+    seasons: seasons.size,
+  };
 }
