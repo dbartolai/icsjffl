@@ -3,11 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AuthStatus } from "@/components/auth/AuthStatus";
 
 const links = [
   { href: "/", label: "Home", enabled: true },
   { href: "/history", label: "History", enabled: true },
-  { href: "/chronicle", label: "Chronicle", enabled: false },
+  { href: "/analytics", label: "Analytics", enabled: true },
   { href: "/trade-room", label: "Trade Room", enabled: false },
   { href: "/payouts", label: "Payouts", enabled: false },
 ] as const;
@@ -50,9 +51,12 @@ export function SiteHeader() {
             );
           })}
         </nav>
-        <div className="season-switcher" aria-label="Current season">
-          <span>Season</span>
-          <strong>2026</strong>
+        <div className="header-actions">
+          <div className="season-switcher" aria-label="Current season">
+            <span>Season</span>
+            <strong>2026</strong>
+          </div>
+          <AuthStatus />
         </div>
       </div>
     </header>
