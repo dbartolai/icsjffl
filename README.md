@@ -72,3 +72,8 @@ npm run build
 ```
 
 The historical tests cover the legacy 2017 endpoint, weekly playoff-score expansion, future-game filtering, champions, records, franchise aggregation, and safe ESPN failures.
+
+The [player-data audit](docs/espn-player-data-audit.md) records which draft,
+weekly roster, lineup, scoring, injury, and transaction fields ESPN still
+returns for 2017 through 2026. Run `npm run espn:audit-player-data` to repeat
+the sanitized, read-only check.
