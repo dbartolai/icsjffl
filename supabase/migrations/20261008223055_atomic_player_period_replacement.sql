@@ -16,9 +16,7 @@ begin
   if coverage.league_id is null or coverage.season is null or coverage.scoring_period_id is null then
     raise exception 'Player period coverage key is required.';
   end if;
-  if p_entries is null
-    or jsonb_typeof(p_entries) is distinct from 'array'
-    or jsonb_array_length(p_entries) = 0 then
+  if jsonb_typeof(p_entries) <> 'array' or jsonb_array_length(p_entries) = 0 then
     raise exception 'A player period requires entries.';
   end if;
   if exists (
