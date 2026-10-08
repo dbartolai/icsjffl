@@ -7,6 +7,7 @@ import { createEspnSyncHandler } from "../src/lib/espn/sync/handler";
 import { upsertSeason } from "../src/lib/espn/sync/history-import";
 import {
   EspnSyncExecutionError,
+  resolveEspnSyncSeason,
   runEspnSeasonSync,
 } from "../src/lib/espn/sync";
 import type {
@@ -26,6 +27,18 @@ function request(token?: string) {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 }
+
+test("sync season rolls over in March using UTC", () => {
+  const cases = [
+    ["2027-01-01T00:00:00.000Z", 2026],
+    ["2027-02-28T23:59:59.999Z", 2026],
+    ["2027-03-01T00:00:00.000Z", 2027],
+    ["2027-12-31T23:59:59.999Z", 2027],
+  ] as const;
+  for (const [timestamp, expected] of cases) {
+    assert.equal(resolveEspnSyncSeason(new Date(timestamp)), expected);
+  }
+});
 
 test("cron route requires its own bearer secret", async () => {
   let syncCalls = 0;

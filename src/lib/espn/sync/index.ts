@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { EspnError, ESPN_SEASON } from "../client";
+import { EspnError } from "../client";
 import { importEspnSeasons, type SeasonImportResult } from "./history-import";
 import {
   SupabaseSyncRunStore,
@@ -10,6 +10,11 @@ import {
 } from "./store";
 
 const LOCK_TTL_MS = 10 * 60 * 1000;
+
+export function resolveEspnSyncSeason(date = new Date()) {
+  const year = date.getUTCFullYear();
+  return date.getUTCMonth() < 2 ? year - 1 : year;
+}
 
 export type EspnSyncResult =
   | { status: "success"; freshness: SyncFreshness }
@@ -115,6 +120,7 @@ function required(name: string) {
 export async function syncCurrentSeason(): Promise<EspnSyncResult> {
   const leagueId = required("ESPN_LEAGUE_ID");
   if (!/^\d+$/.test(leagueId)) throw new EspnSyncExecutionError();
+  const season = resolveEspnSyncSeason();
   const supabase = createClient(
     required("NEXT_PUBLIC_SUPABASE_URL"),
     required("SUPABASE_SECRET_KEY"),
@@ -128,11 +134,11 @@ export async function syncCurrentSeason(): Promise<EspnSyncResult> {
   );
   return runEspnSeasonSync({
     leagueId,
-    season: ESPN_SEASON,
+    season,
     store: new SupabaseSyncRunStore(supabase),
     importSeason: async () => {
       const [result] = await importEspnSeasons({
-        seasons: [ESPN_SEASON],
+        seasons: [season],
         supabase,
       });
       return result;
