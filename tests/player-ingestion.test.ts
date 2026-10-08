@@ -159,14 +159,19 @@ test("keeps unknown transaction codes unverified with provider identifiers", () 
 
 test("fetches activity before it requests only ESPN-reported periods", async () => {
   process.env.ESPN_LEAGUE_ID = "123";
-  delete process.env.ESPN_S2;
-  delete process.env.ESPN_SWID;
+  process.env.ESPN_S2 = "fixture-s2";
+  process.env.ESPN_SWID = "{fixture-swid}";
   const calls: string[] = [];
   global.fetch = async (input, init) => {
     const url = new URL(String(input));
     calls.push(`${url.pathname}:${url.searchParams.get("scoringPeriodId") ?? "summary"}`);
     if (url.pathname.endsWith("/communication/")) {
-      assert.ok(new Headers(init?.headers).has("x-fantasy-filter"));
+      const requestHeaders = new Headers(init?.headers);
+      assert.ok(requestHeaders.has("x-fantasy-filter"));
+      assert.equal(
+        requestHeaders.get("Cookie"),
+        "espn_s2=fixture-s2; SWID={fixture-swid}",
+      );
       return Response.json({ topics: [] });
     }
     if (!url.searchParams.has("scoringPeriodId")) {

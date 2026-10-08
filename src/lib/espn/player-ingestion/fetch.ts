@@ -122,9 +122,10 @@ export async function fetchCurrentPlayerImport(options: {
 
   const activityUrl = transactionUrl(leagueId, options.season);
   activityUrl.searchParams.set("view", "kona_league_communication");
-  const activityHeaders = {
-    ...new Headers(requestHeaders),
-    "x-fantasy-filter": JSON.stringify({
+  const activityHeaders = new Headers(requestHeaders);
+  activityHeaders.set(
+    "x-fantasy-filter",
+    JSON.stringify({
       topics: {
         filterType: { value: ["ACTIVITY_TRANSACTIONS"] },
         limit: 500,
@@ -132,7 +133,7 @@ export async function fetchCurrentPlayerImport(options: {
         sortMessageDate: { sortPriority: 1, sortAsc: false },
       },
     }),
-  };
+  );
   const activityPayload = await getJson(activityUrl, activityHeaders, fetcher);
   const transactions = normalizeTransactions({
     leagueId,
