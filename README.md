@@ -133,3 +133,7 @@ The [player-data audit](docs/espn-player-data-audit.md) records which draft,
 weekly roster, lineup, scoring, injury, and transaction fields ESPN still
 returns for 2017 through 2026. Run `npm run espn:audit-player-data` to repeat
 the sanitized, read-only check.
+
+The [injury and bench model evidence matrix](docs/injury-bench-model-evidence.md)
+sets the current boundary: forward 2026 lineup evidence is supported, but
+injury, historical eligibility, and bench-impact claims are not.

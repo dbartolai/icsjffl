@@ -10,6 +10,19 @@ Run the sanitized probe with:
 node --import tsx scripts/audit-injury-data.ts
 ```
 
+The private, aggregate-only crosswalk probe is separate because it needs the
+league's ESPN credentials:
+
+```bash
+node --env-file=.env.local --import tsx scripts/audit-injury-crosswalk.ts
+```
+
+Its first 40-ID run found 18 exact ID and name matches. ESPN omitted the other
+22 IDs from both two bounded batch requests and individual retries. This is a
+40-ID sample, not population coverage. See the [injury and bench model evidence
+matrix](./injury-bench-model-evidence.md) for the denominator, timing limits,
+and model boundary.
+
 It makes one public ESPN request and four public nflverse `HEAD` requests. It
 prints status codes, field counts, and response metadata only. It never writes
 responses, player names, roster data, league data, cookies, or credentials.
