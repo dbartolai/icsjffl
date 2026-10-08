@@ -1,6 +1,6 @@
 begin;
 
-select plan(48);
+select plan(50);
 
 insert into public.league_seasons (league_id, season, league_name, team_count, is_complete) values
   ('league-a', 2026, 'Test League', 2, false),
@@ -39,6 +39,8 @@ select is((select injury_designation from public.player_week_entries where espn_
 select is((select scoring_period_id from public.player_data_coverage where scoring_period_id = 0), 0::smallint, 'coverage accepts the season-level marker');
 
 select throws_ok($$ insert into public.player_data_coverage (league_id, season, scoring_period_id, roster_evidence_status, lineup_evidence_status, actual_score_evidence_status, projection_evidence_status, injury_evidence_status, transaction_evidence_status, reason, source, source_checksum, observed_at) values ('league-a', 2017, 1, 'confirmed', 'unavailable', 'unavailable', 'unavailable', 'unavailable', 'unavailable', 'Invalid weekly claim.', 'espn', repeat('f', 64), now()) $$, '23514', null, '2017 cannot claim confirmed weekly evidence');
+insert into public.player_data_coverage (league_id, season, scoring_period_id, roster_evidence_status, lineup_evidence_status, actual_score_evidence_status, projection_evidence_status, injury_evidence_status, transaction_evidence_status, reason, source, source_checksum, observed_at) values ('league-a', 2017, 1, 'unavailable', 'unavailable', 'unavailable', 'unavailable', 'unavailable', 'unavailable', 'No weekly evidence.', 'espn', repeat('f', 64), now());
+select is((select roster_evidence_status from public.player_data_coverage where season = 2017 and scoring_period_id = 1), 'unavailable', '2017 can record unavailable weekly coverage');
 select throws_ok($$ insert into public.player_week_entries (league_id, season, scoring_period_id, team_id, espn_player_id, roster_evidence_status, lineup_evidence_status, actual_score_evidence_status, projection_evidence_status, injury_evidence_status, source, source_checksum, observed_at) values ('league-a', 2017, 1, 'team-1', 1, 'confirmed', 'unavailable', 'unavailable', 'unavailable', 'unavailable', 'espn', repeat('f', 64), now()) $$, '23514', null, '2017 weekly entries are rejected');
 select throws_ok($$ insert into public.player_week_entries (league_id, season, scoring_period_id, team_id, espn_player_id, lineup_slot_id, roster_evidence_status, lineup_evidence_status, actual_score_evidence_status, projection_evidence_status, injury_evidence_status, source, source_checksum, observed_at) values ('league-a', 2026, 2, 'team-2', -2, 0, 'confirmed', 'inferred', 'unavailable', 'unavailable', 'unavailable', 'espn', repeat('f', 64), now()) $$, '23514', null, 'inferred lineup evidence cannot carry a lineup slot');
 select throws_ok($$ insert into public.player_week_entries (league_id, season, scoring_period_id, team_id, espn_player_id, roster_evidence_status, lineup_evidence_status, actual_score_evidence_status, projection_evidence_status, injury_evidence_status, source, source_checksum, observed_at) values ('league-a', 2026, 2, 'team-2', -2, 'confirmed', 'unavailable', 'unavailable', 'confirmed', 'unavailable', 'espn', repeat('f', 64), now()) $$, '23514', null, 'confirmed projections require value and ESPN source identifiers');
@@ -48,6 +50,7 @@ select throws_ok($$ insert into public.league_draft_picks (league_id, season, te
 select throws_ok($$ insert into public.league_draft_picks (league_id, season, team_id, espn_player_id, round, round_pick, overall_pick, source, source_checksum, observed_at, evidence_status) values ('league-a', 2026, 'team-2', 1, 1, 2, 2, 'espn', repeat('f', 64), now(), 'confirmed') $$, '23505', null, 'a player cannot be drafted twice in one season');
 select throws_ok($$ insert into public.league_draft_picks (league_id, season, team_id, espn_player_id, round, round_pick, overall_pick, source, source_checksum, observed_at, evidence_status) values ('league-a', 2026, 'team-old', -2, 1, 2, 2, 'espn', repeat('f', 64), now(), 'confirmed') $$, '23503', null, 'composite team foreign key rejects a team from another season');
 select throws_ok($$ insert into public.transactions (league_id, season, provider_event_id, event_at, provider_type_code, normalized_type, evidence_status, source, source_checksum, observed_at) values ('league-a', 2026, 'inferred-event', now(), 'RAW_CODE', 'trade', 'unverified', 'espn', repeat('f', 64), now()) $$, '23514', null, 'an unverified event cannot claim an inferred transaction type');
+select throws_ok($$ insert into public.transactions (league_id, season, provider_event_id, event_at, provider_type_code, evidence_status, source, source_checksum, observed_at) values ('league-a', 2026, 'inferred-evidence', now(), 'RAW_CODE', 'inferred', 'espn', repeat('f', 64), now()) $$, '23514', null, 'inferred transaction evidence is rejected');
 select throws_ok($$ insert into public.transactions (league_id, season, provider_event_id, event_at, provider_type_code, evidence_status, source, source_checksum, observed_at) values ('league-a', 2025, 'old-event', now(), 'RAW_CODE', 'confirmed', 'espn', repeat('f', 64), now()) $$, '23514', null, 'transactions begin with the forward-captured 2026 feed');
 
 select ok(has_table_privilege('anon', 'public.players', 'select'), 'anon has player read grant');
@@ -65,7 +68,7 @@ select is((select count(*) from pg_tables where schemaname = 'public' and tablen
 set local role anon;
 select is((select count(*) from public.players), 2::bigint, 'anon RLS reads players');
 select is((select count(*) from public.league_draft_picks), 1::bigint, 'anon RLS reads drafts');
-select is((select count(*) from public.player_data_coverage), 3::bigint, 'anon RLS reads coverage');
+select is((select count(*) from public.player_data_coverage), 4::bigint, 'anon RLS reads coverage');
 select is((select count(*) from public.player_week_entries), 1::bigint, 'anon RLS reads weekly entries');
 select throws_ok($$ insert into public.players (espn_player_id, display_name, first_seen_season, last_seen_season) values (3, 'Blocked Player', 2026, 2026) $$, '42501', null, 'anon cannot insert');
 select throws_ok($$ update public.players set display_name = 'Changed' where espn_player_id = 1 $$, '42501', null, 'anon cannot update');
@@ -76,7 +79,7 @@ reset role;
 set local role authenticated;
 select is((select count(*) from public.players), 2::bigint, 'authenticated RLS reads players');
 select is((select count(*) from public.league_draft_picks), 1::bigint, 'authenticated RLS reads drafts');
-select is((select count(*) from public.player_data_coverage), 3::bigint, 'authenticated RLS reads coverage');
+select is((select count(*) from public.player_data_coverage), 4::bigint, 'authenticated RLS reads coverage');
 select is((select count(*) from public.player_week_entries), 1::bigint, 'authenticated RLS reads weekly entries');
 select throws_ok($$ insert into public.player_week_entries (league_id, season, scoring_period_id, team_id, espn_player_id, roster_evidence_status, lineup_evidence_status, actual_score_evidence_status, projection_evidence_status, injury_evidence_status, source, source_checksum, observed_at) values ('league-a', 2026, 2, 'team-2', -2, 'confirmed', 'unavailable', 'unavailable', 'unavailable', 'unavailable', 'espn', repeat('f', 64), now()) $$, '42501', null, 'authenticated cannot insert');
 select throws_ok($$ update public.player_week_entries set actual_points = 0 $$, '42501', null, 'authenticated cannot update');
@@ -93,7 +96,7 @@ insert into public.transactions (league_id, season, provider_event_id, event_at,
 insert into public.transaction_assets (league_id, season, provider_event_id, provider_asset_id, espn_player_id, team_id, source, source_checksum, observed_at, evidence_status) values ('league-a', 2026, 'event-1', 'asset-1', -2, 'team-1', 'espn', repeat('9', 64), now(), 'confirmed') on conflict (league_id, season, provider_event_id, provider_asset_id) do update set source_checksum = excluded.source_checksum;
 select is((select display_name from public.players where espn_player_id = 1), 'Player One revised', 'service role upserts players');
 select is((select count(*) from public.league_draft_picks), 1::bigint, 'service role upserts draft picks');
-select is((select reason from public.player_data_coverage where scoring_period_id = 1), 'Injury designations are not historically verified.', 'service role upserts coverage');
+select is((select reason from public.player_data_coverage where season = 2026 and scoring_period_id = 1), 'Injury designations are not historically verified.', 'service role upserts coverage');
 select is((select actual_points from public.player_week_entries where espn_player_id = 1), 18.25::numeric, 'service role upserts weekly entries');
 select is((select count(*) from public.transactions where provider_event_id = 'event-1'), 1::bigint, 'service role upserts transactions');
 select is((select count(*) from public.transaction_assets where provider_asset_id = 'asset-1'), 1::bigint, 'service role upserts transaction assets');
