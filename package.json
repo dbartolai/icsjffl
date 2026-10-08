@@ -12,7 +12,8 @@
     "espn:audit-player-data": "node --env-file=.env.local --import tsx scripts/audit-espn-player-data.ts",
     "auth:bootstrap": "node --env-file=.env.local --import tsx scripts/bootstrap-commissioner.ts",
     "history:check": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-espn-history.ts --dry-run",
-    "history:import": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-espn-history.ts"
+    "history:import": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-espn-history.ts",
+    "players:current:import": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-current-players.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
