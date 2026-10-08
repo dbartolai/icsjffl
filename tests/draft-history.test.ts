@@ -176,7 +176,7 @@ test("caches player identities for repeated historical draft IDs", async () => {
   let playerRequests = 0;
   const rows = await fetchDraftHistory({
     leagueId: "123",
-    seasons: [2017, 2018],
+    seasons: [2017, 2017],
     headers: {},
     fetcher: async (input, init) => {
       const url = new URL(String(input));
@@ -198,4 +198,86 @@ test("caches player identities for repeated historical draft IDs", async () => {
   });
   assert.equal(rows.length, 4);
   assert.equal(playerRequests, 1);
+});
+
+test("keeps player identity provenance scoped to each draft season", async () => {
+  const requests: Array<{ season: number; header: string | null }> = [];
+  const fetcher: typeof fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const season = Number(url.pathname.match(/seasons\/(\d+)/)?.[1]);
+    if (url.searchParams.get("view") === "mDraftDetail") {
+      return Response.json(draftPayload(season, [picks[0]]));
+    }
+    requests.push({ season, header: new Headers(init?.headers).get("x-sentinel") });
+    return Response.json({
+      players: [{
+        player: {
+          id: 10,
+          fullName: `Fixture ${season}`,
+          defaultPositionId: season === 2018 ? 1 : 2,
+        },
+      }],
+    });
+  };
+
+  const rows = await fetchDraftHistory({
+    leagueId: "123",
+    seasons: [2018, 2026],
+    headers: new Headers([["x-sentinel", "present"]]),
+    fetcher,
+  });
+
+  assert.deepEqual(requests, [
+    { season: 2018, header: "present" },
+    { season: 2026, header: "present" },
+  ]);
+  assert.deepEqual(
+    rows.map((row) => ({
+      season: row.season,
+      name: row.player.displayName,
+      position: row.player.defaultPositionId,
+      sourceSeason: row.player.source.season,
+    })),
+    [
+      { season: 2018, name: "Fixture 2018", position: 1, sourceSeason: 2018 },
+      { season: 2026, name: "Fixture 2026", position: 2, sourceSeason: 2026 },
+    ],
+  );
+
+  const reverseRows = await fetchDraftHistory({
+    leagueId: "123",
+    seasons: [2026, 2018],
+    headers: { "x-sentinel": "present" },
+    fetcher,
+  });
+  assert.deepEqual(
+    reverseRows.map((row) => [row.season, row.player.displayName, row.player.defaultPositionId]),
+    [[2026, "Fixture 2026", 2], [2018, "Fixture 2018", 1]],
+  );
+});
+
+test("preserves supported header forms for player resolution", async () => {
+  const headerForms: HeadersInit[] = [
+    { "x-sentinel": "record" },
+    [["x-sentinel", "tuples"]],
+    new Headers([["x-sentinel", "headers"]]),
+  ];
+
+  for (const headers of headerForms) {
+    let playerHeader: string | null = null;
+    await fetchDraftHistory({
+      leagueId: "123",
+      seasons: [2026],
+      headers,
+      fetcher: async (input, init) => {
+        const url = new URL(String(input));
+        if (url.searchParams.get("view") === "mDraftDetail") {
+          return Response.json(draftPayload(2026, [picks[0]]));
+        }
+        playerHeader = new Headers(init?.headers).get("x-sentinel");
+        return Response.json(playerPayload([10]));
+      },
+    });
+    assert.equal(playerHeader, new Headers(headers).get("x-sentinel"));
+  }
 });

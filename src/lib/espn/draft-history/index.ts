@@ -4,6 +4,7 @@ import { z } from "zod";
 
 export type DraftSourceMetadata = {
   source: "espn:mDraftDetail" | "espn:kona_player_info";
+  season: number;
   sourceChecksum: string;
   observedAt: string;
   evidenceStatus: "confirmed";
@@ -105,9 +106,11 @@ function source(
   kind: DraftSourceMetadata["source"],
   payload: unknown,
   observedAt: string,
+  season: number,
 ): DraftSourceMetadata {
   return {
     source: kind,
+    season,
     sourceChecksum: checksum(payload),
     observedAt,
     evidenceStatus: "confirmed",
@@ -154,7 +157,7 @@ function normalizeDraft(
   if (String(raw.id) !== leagueId || raw.seasonId !== expectedSeason) {
     throw new Error("ESPN draft response does not match the requested league season.");
   }
-  const metadata = source("espn:mDraftDetail", payload, observedAt);
+  const metadata = source("espn:mDraftDetail", payload, observedAt, expectedSeason);
   const rows = raw.draftDetail.picks.map((pick) => {
     if (
       pick.teamId <= 0 ||
@@ -212,18 +215,14 @@ async function resolvePlayers(
     const url = leagueUrl(leagueId, season);
     url.searchParams.append("view", "kona_player_info");
     const observedAt = new Date().toISOString();
-    const payload = await fetchJson(
-      url,
-      {
-        ...headers,
-        "x-fantasy-filter": JSON.stringify({
-          players: { filterIds: { value: batch } },
-        }),
-      },
-      fetcher,
+    const playerHeaders = new Headers(headers);
+    playerHeaders.set(
+      "x-fantasy-filter",
+      JSON.stringify({ players: { filterIds: { value: batch } } }),
     );
+    const payload = await fetchJson(url, playerHeaders, fetcher);
     const raw = playerResponseSchema.parse(unwrapLegacy(payload));
-    const metadata = source("espn:kona_player_info", payload, observedAt);
+    const metadata = source("espn:kona_player_info", payload, observedAt, season);
     for (const entry of raw.players) {
       const player = "player" in entry ? entry.player : entry;
       if (!ids.includes(player.id)) continue;
@@ -255,6 +254,10 @@ export async function fetchDraftHistory(
   return fetchDraftHistoryWithCache(options, new Map());
 }
 
+function playerCacheKey(season: number, playerId: number): string {
+  return `${season}:${playerId}`;
+}
+
 async function fetchDraftHistoryWithCache(
   options: FetchOptions,
   cache: Map<string, ResolvedDraftPlayer>,
@@ -271,7 +274,7 @@ async function fetchDraftHistoryWithCache(
     const payload = await fetchJson(url, options.headers, fetcher);
     const draft = normalizeDraft(payload, options.leagueId, season, new Date().toISOString());
     const ids = draft.map((row) => row.espnPlayerId);
-    const unresolved = ids.filter((id) => !cache.has(String(id)));
+    const unresolved = ids.filter((id) => !cache.has(playerCacheKey(season, id)));
     const players = await resolvePlayers(
       options.leagueId,
       season,
@@ -279,11 +282,11 @@ async function fetchDraftHistoryWithCache(
       options.headers,
       fetcher,
     );
-    for (const [id, player] of players) cache.set(String(id), player);
+    for (const [id, player] of players) cache.set(playerCacheKey(season, id), player);
     rows.push(
       ...draft.map((row) => ({
         ...row,
-        player: cache.get(String(row.espnPlayerId))!,
+        player: cache.get(playerCacheKey(season, row.espnPlayerId))!,
       })),
     );
   }
