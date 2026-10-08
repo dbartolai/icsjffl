@@ -20,6 +20,12 @@ export default async function AnalyticsPage({
 }) {
   const rawSeason = (await searchParams).season;
   const parsedSeason = typeof rawSeason === "string" ? Number(rawSeason) : NaN;
-  const data = await getLeagueAnalytics(Number.isInteger(parsedSeason) ? parsedSeason : null);
+  const requestedSeason =
+    rawSeason === undefined
+      ? 2026
+      : Number.isInteger(parsedSeason)
+        ? parsedSeason
+        : null;
+  const data = await getLeagueAnalytics(requestedSeason);
   return data ? <AnalyticsDashboard data={data} /> : <AnalyticsEmptyState />;
 }

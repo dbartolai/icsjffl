@@ -57,7 +57,13 @@ export function StandingsTable({ teams }: { teams: FantasyTeam[] }) {
                   {team.pointsAgainst.toFixed(2)}
                 </td>
                 <td
-                  className={`numeric ${difference > 0 ? "positive" : "muted"}`}
+                  className={`numeric ${
+                    difference > 0
+                      ? "positive"
+                      : difference < 0
+                        ? "negative"
+                        : "muted"
+                  }`}
                 >
                   {difference > 0 ? "+" : ""}
                   {difference.toFixed(2)}

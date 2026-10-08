@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { StandingsTable } from "@/components/StandingsTable";
 import { MatchupCard } from "@/components/MatchupCard";
-import { TeamCard } from "@/components/TeamCard";
 import { getLeagueData } from "@/lib/league";
 import { EspnError } from "@/lib/espn/client";
 import { getRecordBookData } from "@/lib/record-book";
 
 export const dynamic = "force-dynamic";
+const SHOW_EDITORIAL_HIGHLIGHTS: boolean = false;
 
 export default async function Home() {
   let data;
@@ -14,7 +14,9 @@ export default async function Home() {
   try {
     [data, seasonRecords] = await Promise.all([
       getLeagueData(),
-      getRecordBookData(2026).catch(() => null),
+      SHOW_EDITORIAL_HIGHLIGHTS
+        ? getRecordBookData(2026).catch(() => null)
+        : Promise.resolve(null),
     ]);
   } catch (error) {
     if (!(error instanceof EspnError)) throw error;
@@ -47,7 +49,7 @@ export default async function Home() {
   );
   return (
     <main id="main" className="shell">
-      {seasonRecords ? (
+      {SHOW_EDITORIAL_HIGHLIGHTS && seasonRecords ? (
         <section className="record-report home-report">
           <div>
             <p className="editorial-kicker">THE 2026 LEAGUE REPORT</p>
@@ -76,7 +78,9 @@ export default async function Home() {
               <span className="accent-line" /> FANTASY FOOTBALL / {league.season}
             </p>
             <h1>{league.name}</h1>
-            <p className="muted">Your league. Every matchup. All in one place.</p>
+            <p className="muted">
+              Live standings, weekly matchups, and season totals.
+            </p>
           </div>
         </header>
       )}
@@ -100,18 +104,21 @@ export default async function Home() {
         </div>
         <div className="overview-stat">
           <span className="stat-label">LEAGUE LEADER</span>
-          <div className="overview-value">
-            {leader ? `${leader.wins}–${leader.losses}–${leader.ties}` : "—"}
+          <div className="overview-value overview-team-name">
+            {leader?.name ?? "No standings yet"}
           </div>
-          <p className="muted text-xs">{leader?.name ?? "No standings yet"}</p>
+          <p className="muted text-xs">
+            {leader ? `${leader.wins}–${leader.losses}–${leader.ties}` : "—"}
+          </p>
         </div>
         <div className="overview-stat">
           <span className="stat-label">TOP SCORER</span>
-          <div className="overview-value">
-            {topScorer?.pointsFor.toFixed(2) ?? "—"}
-            <span className="stat-suffix"> pts</span>
+          <div className="overview-value overview-team-name">
+            {topScorer?.name ?? "No scores yet"}
           </div>
-          <p className="muted text-xs">{topScorer?.name ?? "No scores yet"}</p>
+          <p className="muted text-xs">
+            {topScorer ? `${topScorer.pointsFor.toFixed(2)} pts` : "—"}
+          </p>
         </div>
         <div className="overview-stat">
           <span className="stat-label">LEAGUE POINTS</span>
@@ -168,25 +175,6 @@ export default async function Home() {
           </p>
         </section>
       </div>
-      <section id="teams" className="teams-section">
-        <div className="section-heading">
-          <div>
-            <h2>Around the league</h2>
-            <p className="muted">Meet the competition.</p>
-          </div>
-          <span className="muted text-xs">{league.season} ROSTER OF TEAMS</span>
-        </div>
-        <div className="team-grid">
-          {league.teams.map((team) => (
-            <TeamCard key={team.id} team={team} />
-          ))}
-        </div>
-        {!league.teams.length && (
-          <p className="muted">
-            Teams will appear when your league is available.
-          </p>
-        )}
-      </section>
       <footer>
         <span>
           ICSJ FFL <span className="muted mx-2">/</span> {league.season}
