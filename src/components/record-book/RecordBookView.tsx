@@ -165,14 +165,14 @@ export function RecordBookView({ data }: { data: RecordBookData }) {
         </div>
       </section>
 
-      <section className="record-chronicle">
+      <section className="record-report">
         <div>
           <p className="editorial-kicker">{data.headline.eyebrow}</p>
           <h2>{data.headline.title}</h2>
           <p>{data.headline.summary}</p>
         </div>
         {data.blowoutLeaders[0] && (
-          <div className="chronicle-score">
+          <div className="report-score">
             <span>All-time margin</span>
             <strong>{data.blowoutLeaders[0].value.toFixed(1)}</strong>
             <p>
@@ -260,7 +260,6 @@ export function RecordBookView({ data }: { data: RecordBookData }) {
             <p className="editorial-kicker">RECENT HISTORY</p>
             <h2>Season by season</h2>
           </div>
-          <span className="coming-soon-label">Chronicle coming soon</span>
         </div>
         <div className="season-capsule-grid">
           {data.recentSeasons.map((season) => (

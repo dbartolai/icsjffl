@@ -48,16 +48,16 @@ export default async function Home() {
   return (
     <main id="main" className="shell">
       {seasonRecords ? (
-        <section className="record-chronicle home-chronicle">
+        <section className="record-report home-report">
           <div>
-            <p className="editorial-kicker">THE 2026 LEAGUE CHRONICLE</p>
+            <p className="editorial-kicker">THE 2026 LEAGUE REPORT</p>
             <h1>{seasonRecords.headline.title}</h1>
             <p>{seasonRecords.headline.summary}</p>
-            <Link className="button chronicle-link" href="/history">
+            <Link className="button report-link" href="/history">
               Explore the record book
             </Link>
           </div>
-          <div className="chronicle-score">
+          <div className="report-score">
             <span>Season&apos;s largest margin</span>
             <strong>
               {seasonRecords.blowoutLeaders[0]?.value.toFixed(1) ?? "—"}

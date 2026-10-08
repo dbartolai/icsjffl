@@ -84,18 +84,40 @@ a:focus-visible, button:focus-visible, select:focus-visible {
 .primary-nav a:hover, .primary-nav a[aria-current="page"] { color: var(--cobalt); }
 .primary-nav a[aria-current="page"]::after { background: var(--cobalt); }
 .primary-nav > span[aria-disabled="true"] { color: #9aa9bc; cursor: not-allowed; }
+.header-actions {
+  align-items: stretch;
+  display: flex;
+  margin-left: auto;
+}
 .season-switcher {
   align-items: flex-end;
   border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  margin-left: auto;
   min-width: 100px;
-  padding-left: 24px;
+  padding: 0 24px;
 }
 .season-switcher span { color: var(--muted); font-size: 10px; letter-spacing: 1.3px; text-transform: uppercase; }
 .season-switcher strong { font-size: 15px; margin-top: 3px; }
+.auth-sign-in {
+  align-items: center;
+  border-left: 1px solid var(--line);
+  color: var(--cobalt);
+  display: flex;
+  font-size: 13px;
+  font-weight: 700;
+  justify-content: center;
+  min-width: 88px;
+  padding: 0 16px;
+}
+.auth-sign-in:hover { background: var(--wash); }
+.auth-status { align-items: center; border-left: 1px solid var(--line); display: flex; gap: 12px; padding-left: 18px; }
+.auth-status > a { display: flex; flex-direction: column; max-width: 150px; }
+.auth-status > a span { color: var(--muted); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; }
+.auth-status > a strong { font-size: 12px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.auth-status button { background: transparent; border: 0; color: var(--muted); cursor: pointer; font: inherit; font-size: 11px; padding: 8px 0; }
+.auth-status button:hover { color: var(--cobalt); }
 .skip-link { background: var(--cobalt); color: #fff; left: 20px; padding: 10px 14px; position: fixed; top: -80px; z-index: 60; }
 .skip-link:focus { top: 10px; }
 
@@ -225,7 +247,7 @@ footer { border-top: 1px solid var(--line); color: var(--muted); display: flex; 
 .history-ledger > div:last-child { border: 0; }
 .history-ledger span { color: #bac8dc; display: block; font-size: 9px; font-weight: 700; letter-spacing: 1.2px; margin-bottom: 9px; text-transform: uppercase; }
 .history-ledger strong { font-family: var(--editorial-font); font-size: 25px; font-variant-numeric: tabular-nums; }
-.record-chronicle {
+.record-report {
   background-color: var(--cream);
   background-image: linear-gradient(rgba(139, 20, 33, 0.025) 1px, transparent 1px);
   background-size: 100% 6px;
@@ -237,16 +259,16 @@ footer { border-top: 1px solid var(--line); color: var(--muted); display: flex; 
   margin: 30px 0;
   padding: 32px;
 }
-.record-chronicle h2 { font-family: var(--editorial-font); font-size: clamp(30px, 4vw, 52px); letter-spacing: -1.8px; line-height: 1.03; margin: 14px 0 15px; max-width: 780px; }
-.home-chronicle { margin-top: 32px; }
-.home-chronicle h1 { font-family: var(--editorial-font); font-size: clamp(38px, 5vw, 68px); letter-spacing: -2.8px; line-height: .98; margin: 14px 0 15px; max-width: 820px; }
-.chronicle-link { display: inline-block; margin-top: 20px; }
-.chronicle-score small { border-top: 1px solid #dfcfba; color: var(--muted); font-size: 9px; margin-top: 18px; padding-top: 12px; }
-.record-chronicle > div > p:last-child { color: #485a6f; font-family: var(--editorial-font); font-size: 16px; line-height: 1.55; margin: 0; max-width: 740px; }
-.chronicle-score { align-items: center; border-left: 1px solid #dfcfba; display: flex; flex-direction: column; justify-content: center; text-align: center; }
-.chronicle-score span { color: var(--red); font-size: 9px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
-.chronicle-score strong { font-family: var(--editorial-font); font-size: 58px; letter-spacing: -2px; line-height: 1; margin: 10px 0 6px; }
-.chronicle-score p { color: #485a6f; font-size: 11px; margin: 0; }
+.record-report h2 { font-family: var(--editorial-font); font-size: clamp(30px, 4vw, 52px); letter-spacing: -1.8px; line-height: 1.03; margin: 14px 0 15px; max-width: 780px; }
+.home-report { margin-top: 32px; }
+.home-report h1 { font-family: var(--editorial-font); font-size: clamp(38px, 5vw, 68px); letter-spacing: -2.8px; line-height: .98; margin: 14px 0 15px; max-width: 820px; }
+.report-link { display: inline-block; margin-top: 20px; }
+.report-score small { border-top: 1px solid #dfcfba; color: var(--muted); font-size: 9px; margin-top: 18px; padding-top: 12px; }
+.record-report > div > p:last-child { color: #485a6f; font-family: var(--editorial-font); font-size: 16px; line-height: 1.55; margin: 0; max-width: 740px; }
+.report-score { align-items: center; border-left: 1px solid #dfcfba; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+.report-score span { color: var(--red); font-size: 9px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+.report-score strong { font-family: var(--editorial-font); font-size: 58px; letter-spacing: -2px; line-height: 1; margin: 10px 0 6px; }
+.report-score p { color: #485a6f; font-size: 11px; margin: 0; }
 .record-card-grid { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 30px; }
 .record-card { background: #fff; border: 1px solid var(--line); min-height: 255px; overflow: hidden; padding: 24px; position: relative; }
 .record-card::after { background: var(--cobalt); bottom: 0; content: ""; height: 4px; left: 0; position: absolute; width: 100%; }
@@ -279,7 +301,6 @@ footer { border-top: 1px solid var(--line); color: var(--muted); display: flex; 
 .franchise-table tbody th span { color: var(--muted); font-size: 9px; font-weight: 400; margin-top: 4px; }
 .season-capsules { background: var(--cream); border-top: 4px solid var(--red); padding: 26px; }
 .season-capsules .record-section-heading { border-color: #e5dac7; }
-.coming-soon-label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; }
 .season-capsule-grid { display: grid; gap: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .season-capsule { border-right: 1px solid #e5dac7; padding: 26px; }
 .season-capsule:last-child { border: 0; }
@@ -306,16 +327,20 @@ footer { border-top: 1px solid var(--line); color: var(--muted); display: flex; 
   .topbar { position: static; }
   .topbar-inner { align-items: center; flex-wrap: wrap; gap: 0; height: auto; padding: 13px 0 0; }
   .brand { margin-right: auto; }
-  .season-switcher { border: 0; min-width: 0; padding: 0; }
-  .primary-nav { flex-basis: 100%; margin-top: 10px; overflow-x: auto; }
+  .header-actions { margin-left: auto; order: 2; }
+  .season-switcher { border: 0; min-width: 0; padding: 0 18px 0 0; }
+  .auth-sign-in { border: 0; min-width: 0; padding: 0; }
+  .auth-status { border: 0; padding-left: 0; }
+  .auth-status > a { max-width: 130px; }
+  .primary-nav { flex-basis: 100%; margin-top: 10px; order: 3; overflow-x: auto; }
   .primary-nav a, .primary-nav > span { flex: 0 0 auto; height: 42px; padding: 0 13px; }
   .record-book-header { align-items: stretch; flex-direction: column; gap: 24px; padding-top: 38px; }
   .season-filter { max-width: 300px; min-width: 0; }
   .history-ledger { grid-template-columns: repeat(2, 1fr); }
   .history-ledger > div:nth-child(2) { border-right: 0; }
   .history-ledger > div:nth-child(-n + 2) { border-bottom: 1px solid rgba(255,255,255,.16); }
-  .record-chronicle { grid-template-columns: 1fr; }
-  .chronicle-score { align-items: flex-start; border-left: 0; border-top: 1px solid #dfcfba; padding-top: 22px; text-align: left; }
+  .record-report { grid-template-columns: 1fr; }
+  .report-score { align-items: flex-start; border-left: 0; border-top: 1px solid #dfcfba; padding-top: 22px; text-align: left; }
   .record-leaderboards { grid-template-columns: 1fr; }
 }
 
@@ -323,6 +348,10 @@ footer { border-top: 1px solid var(--line); color: var(--muted); display: flex; 
   .shell { width: calc(100% - 28px); }
   .brand-logo { height: 48px; width: 48px; }
   .season-switcher { display: none; }
+  .auth-status { gap: 8px; }
+  .auth-status > a span { display: none; }
+  .auth-status > a strong { margin: 0; max-width: 92px; }
+  .auth-status button { font-size: 10px; }
   .primary-nav > span[aria-disabled="true"] { display: none; }
   .league-header { align-items: flex-start; flex-direction: column; padding-top: 32px; }
   .header-meta { align-items: flex-start; flex-direction: row; }
@@ -337,8 +366,8 @@ footer { border-top: 1px solid var(--line); color: var(--muted); display: flex; 
   .page-intro { font-size: 16px; }
   .history-ledger > div { padding: 18px; }
   .history-ledger strong { font-size: 20px; }
-  .record-chronicle { gap: 24px; margin-top: 18px; padding: 24px 20px; }
-  .record-chronicle h2 { font-size: 35px; }
+  .record-report { gap: 24px; margin-top: 18px; padding: 24px 20px; }
+  .record-report h2 { font-size: 35px; }
   .record-card { min-height: 0; }
   .leaderboard-panel, .franchise-panel { padding: 18px; }
   .leader-row { gap: 8px; grid-template-columns: 20px 34px minmax(0, 1fr) auto; }
