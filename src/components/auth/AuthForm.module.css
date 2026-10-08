@@ -1,0 +1,114 @@
+.form,
+.signedIn {
+  display: grid;
+  gap: 20px;
+}
+
+.form label {
+  color: var(--navy);
+  display: grid;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.4px;
+}
+
+.form input {
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  min-height: 46px;
+  padding: 0 13px;
+}
+
+.form input:focus-visible,
+.modeSwitch button:focus-visible {
+  outline: 3px solid rgba(5, 102, 245, 0.25);
+  outline-offset: 2px;
+}
+
+.modeSwitch {
+  background: var(--wash);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+}
+
+.modeSwitch button {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 10px;
+}
+
+.modeSwitch button[aria-pressed="true"] {
+  background: var(--paper);
+  box-shadow: 0 2px 8px rgba(17, 43, 82, 0.08);
+  color: var(--cobalt);
+}
+
+.primaryButton,
+.secondaryButton {
+  align-items: center;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.primaryButton {
+  background: var(--cobalt);
+  border: 1px solid var(--cobalt);
+  color: #fff;
+}
+
+.primaryButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.secondaryButton {
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  color: var(--navy);
+}
+
+.message {
+  background: var(--cream);
+  border: 1px solid #ecdfc9;
+  border-radius: 6px;
+  color: #635943;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 11px 13px;
+}
+
+.signedIn p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.signedIn strong {
+  font-size: 17px;
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}

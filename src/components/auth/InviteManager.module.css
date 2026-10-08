@@ -1,0 +1,167 @@
+.layout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(320px, 1.1fr);
+}
+
+.form,
+.output,
+.history,
+.notice {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: var(--panel-shadow);
+  padding: 28px;
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+}
+
+.form label {
+  color: var(--navy);
+  display: grid;
+  font-size: 11px;
+  font-weight: 800;
+  gap: 8px;
+  letter-spacing: 0.5px;
+}
+
+.form label span {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.form input,
+.form select,
+.output input {
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  min-height: 44px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.form input:focus-visible,
+.form select:focus-visible,
+.output input:focus-visible {
+  outline: 3px solid rgba(5, 102, 245, 0.25);
+  outline-offset: 2px;
+}
+
+.primaryButton,
+.secondaryButton {
+  align-items: center;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 15px;
+}
+
+.primaryButton {
+  background: var(--cobalt);
+  border: 1px solid var(--cobalt);
+  color: #fff;
+}
+
+.secondaryButton {
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  color: var(--navy);
+  margin-top: 10px;
+}
+
+.primaryButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.output h2,
+.history h2 {
+  font-size: 18px;
+  margin: 0 0 18px;
+}
+
+.output p,
+.help,
+.notice,
+.message {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.message {
+  margin-top: 15px;
+}
+
+.history {
+  grid-column: 1 / -1;
+}
+
+.inviteList {
+  display: grid;
+}
+
+.inviteList article {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 16px 0;
+}
+
+.inviteList article > div {
+  display: grid;
+  gap: 5px;
+}
+
+.inviteList strong {
+  font-size: 14px;
+}
+
+.inviteList span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.inviteList small {
+  background: var(--sage);
+  border-radius: 99px;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.inviteList small[data-status="expired"] {
+  background: var(--wash);
+  color: var(--muted);
+}
+
+.inviteList small[data-status="accepted"] {
+  background: #edf2ff;
+  color: #385ca0;
+}
+
+@media (max-width: 780px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .history {
+    grid-column: auto;
+  }
+}

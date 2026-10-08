@@ -1,0 +1,74 @@
+.centered,
+.invite,
+.success {
+  display: grid;
+  gap: 20px;
+}
+
+.centered {
+  justify-items: start;
+}
+
+.invite > div {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 7px;
+  padding-bottom: 18px;
+}
+
+.invite span,
+.success span {
+  color: var(--red);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.invite strong {
+  color: var(--navy);
+  font-size: 22px;
+}
+
+.invite small,
+.invite p,
+.success p,
+.notice {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.success h2 {
+  font-family: var(--editorial-font);
+  font-size: 38px;
+  margin: 0;
+}
+
+.primaryButton {
+  align-items: center;
+  background: var(--cobalt);
+  border: 1px solid var(--cobalt);
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.primaryButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.error {
+  background: #fff2f2;
+  border: 1px solid #efc8c8;
+  border-radius: 6px;
+  color: var(--red) !important;
+  padding: 11px 13px;
+}
