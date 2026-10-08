@@ -147,13 +147,17 @@ export function normalizePlayerPeriod(input: {
   observedAt: string;
   transactionEvidenceStatus: EvidenceStatus;
   lineupSlotCounts: Record<string, number> | null;
+  suppressHistoricalFields?: boolean;
 }): PlayerPeriod {
   if (input.season < 2018) throw new Error("2017 weekly player imports are unavailable.");
   if (!Number.isInteger(input.scoringPeriodId) || input.scoringPeriodId < 1) {
     throw new Error("The scoring period is invalid.");
   }
   const payload = object(input.payload);
-  if (!payload || number(payload.seasonId) !== input.season) {
+  if (!payload || String(number(payload.id)) !== input.leagueId) {
+    throw new Error("ESPN returned a player period for another league.");
+  }
+  if (number(payload.seasonId) !== input.season) {
     throw new Error("ESPN returned a player period for another season.");
   }
   if (number(payload.scoringPeriodId) !== input.scoringPeriodId) {
@@ -164,11 +168,11 @@ export function normalizePlayerPeriod(input: {
   const hasLineups = roster.every((row) => number(row.entry.lineupSlotId) !== null);
   const hasActuals = roster.every((row) => actual.has(row.espnPlayerId));
   const hasProjections = roster.every((row) => projectionFor(row.player, input.scoringPeriodId));
-  const hasInjuries = roster.every(
+  const hasInjuries = !input.suppressHistoricalFields && roster.every(
     (row) =>
       string(row.player.injuryStatus) !== null && boolean(row.player.injured) !== null,
   );
-  const hasEligibleSlots = roster.every(
+  const hasEligibleSlots = !input.suppressHistoricalFields && roster.every(
     (row) =>
       Array.isArray(row.player.eligibleSlots) &&
       array(row.player.eligibleSlots).every((slot) => number(slot) !== null),

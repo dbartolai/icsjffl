@@ -14,7 +14,8 @@
     "history:check": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-espn-history.ts --dry-run",
     "history:import": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-espn-history.ts",
     "drafts:import": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-espn-drafts.ts",
-    "players:current:import": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-current-players.ts"
+    "players:current:import": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-current-players.ts",
+    "players:historical:import": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-historical-players.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
