@@ -1,6 +1,6 @@
 begin;
 
-select plan(10);
+select plan(12);
 
 insert into public.league_seasons (league_id, season, league_name, team_count, is_complete) values
   ('import-league', 2020, 'Import League', 1, true),
@@ -98,6 +98,20 @@ select throws_ok(
   $$ insert into public.player_data_coverage (league_id, season, scoring_period_id, roster_evidence_status, lineup_evidence_status, actual_score_evidence_status, projection_evidence_status, injury_evidence_status, transaction_evidence_status, lineup_rule_evidence_status, lineup_slot_counts, reason, source, source_checksum, observed_at) values ('import-league', 2026, 2, 'unavailable', 'unavailable', 'unavailable', 'unavailable', 'unavailable', 'unavailable', 'confirmed', null, 'Bad rules.', 'espn', repeat('7', 64), now()) $$,
   '23514', null, 'confirmed lineup rules require direct slot counts'
 );
+
+set local role service_role;
+select throws_ok(
+  $$ select public.replace_player_period_snapshot(
+    (select to_jsonb(coverage) from public.player_data_coverage coverage where league_id = 'import-league' and season = 2026 and scoring_period_id = 1),
+    null
+  ) $$,
+  'P0001', 'A player period requires entries.', 'null entries are rejected before replacement'
+);
+select is(
+  (select count(*) from public.player_week_entries where league_id = 'import-league' and season = 2026 and scoring_period_id = 1),
+  1::bigint, 'a rejected null replacement preserves the prior snapshot'
+);
+reset role;
 
 select * from finish();
 rollback;
