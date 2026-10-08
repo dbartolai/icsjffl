@@ -112,7 +112,7 @@ function transactionEvidenceStatus(payload: unknown) {
   if (!activity || !Array.isArray(activity.topics)) {
     throw new EspnError("ESPN returned incomplete transaction activity data.");
   }
-  return activity.topics.length < 500 ? "confirmed" : "unverified";
+  return "unverified" as const;
 }
 
 export async function fetchCurrentPlayerImport(options: {
