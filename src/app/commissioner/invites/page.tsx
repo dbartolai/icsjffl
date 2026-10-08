@@ -13,8 +13,8 @@ export default function CommissionerInvitesPage() {
         <p>COMMISSIONER DESK</p>
         <h1>Team invites</h1>
         <span>
-          Create a one-time link for a specific ESPN team slot. Send the link
-          directly to that manager.
+          Create a one-time link for a current ESPN team. Send the link directly
+          to that manager.
         </span>
       </header>
       <InviteManager />

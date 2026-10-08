@@ -1,6 +1,6 @@
 begin;
 
-select plan(9);
+select plan(13);
 
 insert into auth.users (
   id,
@@ -25,6 +25,26 @@ insert into public.league_memberships (league_id, user_id, role, team_id) values
   ('league-a', '10000000-0000-0000-0000-000000000001', 'commissioner', null),
   ('league-a', '10000000-0000-0000-0000-000000000002', 'member', 'team-1'),
   ('league-a', '10000000-0000-0000-0000-000000000003', 'member', 'team-2');
+
+insert into public.league_seasons (
+  league_id,
+  season,
+  league_name,
+  team_count,
+  is_complete
+) values ('league-a', 2026, 'Test League', 5, false);
+
+insert into public.league_teams (
+  league_id,
+  season,
+  team_id,
+  team_name
+) values
+  ('league-a', 2026, 'team-1', 'Team One'),
+  ('league-a', 2026, 'team-2', 'Team Two'),
+  ('league-a', 2026, 'team-3', 'Team Three'),
+  ('league-a', 2026, 'team-4', 'Team Four'),
+  ('league-a', 2026, 'team-5', 'Team Five');
 
 select set_config('request.jwt.claim.role', 'authenticated', true);
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000002', true);
@@ -62,6 +82,50 @@ select is(
   'commissioner can read all league memberships'
 );
 
+select is(
+  (
+    select team_label
+    from public.create_team_invite(
+      'league-a',
+      'team-3',
+      repeat('a', 64),
+      now() + interval '1 day'
+    )
+  ),
+  'Team Three',
+  'invite team label is resolved from the latest ESPN season'
+);
+
+select throws_ok(
+  $$
+    select *
+    from public.create_team_invite(
+      'league-a',
+      'unknown-team',
+      repeat('b', 64),
+      now() + interval '1 day'
+    )
+  $$,
+  'P0001',
+  'Team is not in the latest ESPN season',
+  'commissioner cannot invite an unknown team slot'
+);
+
+select throws_ok(
+  $$
+    select *
+    from public.create_team_invite(
+      'league-a',
+      'team-1',
+      repeat('e', 64),
+      now() + interval '1 day'
+    )
+  $$,
+  'P0001',
+  'Team already has a member',
+  'commissioner cannot invite a claimed team'
+);
+
 reset role;
 insert into public.team_invites (
   league_id,
@@ -87,6 +151,33 @@ select throws_ok(
   'P0001',
   'Invite has already been used',
   'accepted invite cannot be replayed'
+);
+
+reset role;
+insert into public.team_invites (
+  league_id,
+  team_id,
+  token_hash,
+  created_by,
+  created_at,
+  expires_at
+) values (
+  'league-a',
+  'team-5',
+  repeat('f', 64),
+  '10000000-0000-0000-0000-000000000001',
+  now(),
+  now() + interval '1 day'
+);
+
+select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000004', true);
+set local role authenticated;
+
+select throws_ok(
+  $$ select * from public.accept_team_invite(repeat('f', 64)) $$,
+  'P0001',
+  'User already belongs to this league',
+  'one user cannot claim a second team in the league'
 );
 
 reset role;

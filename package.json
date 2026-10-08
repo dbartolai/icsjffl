@@ -10,10 +10,12 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --conditions=react-server --import tsx --test tests/*.test.ts",
     "espn:audit-player-data": "node --env-file=.env.local --import tsx scripts/audit-espn-player-data.ts",
+    "auth:bootstrap": "node --env-file=.env.local --import tsx scripts/bootstrap-commissioner.ts",
     "history:check": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-espn-history.ts --dry-run",
     "history:import": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-espn-history.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.2",
     "next": "16.3.7",
     "react": "19.2.8",

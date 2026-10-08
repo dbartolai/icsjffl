@@ -1,15 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getAuthClient } from "@/lib/auth/client";
+import { buildAuthRedirectUrl } from "@/lib/auth/invites";
 import styles from "./AuthForm.module.css";
 
 type Mode = "sign-in" | "sign-up";
 
-export function AuthForm({ nextPath }: { nextPath: string }) {
-  const router = useRouter();
+export function AuthForm({
+  nextPath,
+  commissionerDenied = false,
+}: {
+  nextPath: string;
+  commissionerDenied?: boolean;
+}) {
   const [mode, setMode] = useState<Mode>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,8 +51,7 @@ export function AuthForm({ nextPath }: { nextPath: string }) {
         return;
       }
 
-      router.replace(nextPath);
-      router.refresh();
+      window.location.assign(nextPath);
       return;
     }
 
@@ -55,7 +59,7 @@ export function AuthForm({ nextPath }: { nextPath: string }) {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}${nextPath}`,
+        emailRedirectTo: buildAuthRedirectUrl(nextPath, window.location.origin),
       },
     });
 
@@ -66,8 +70,7 @@ export function AuthForm({ nextPath }: { nextPath: string }) {
     }
 
     if (data.session) {
-      router.replace(nextPath);
-      router.refresh();
+      window.location.assign(nextPath);
       return;
     }
 
@@ -88,9 +91,12 @@ export function AuthForm({ nextPath }: { nextPath: string }) {
       <div className={styles.signedIn}>
         <p>Signed in as</p>
         <strong>{signedInEmail}</strong>
+        {commissionerDenied ? (
+          <p className={styles.message}>This account is not a league commissioner.</p>
+        ) : null}
         <div className={styles.actions}>
-          <Link className={styles.primaryButton} href={nextPath}>
-            Continue
+          <Link className={styles.primaryButton} href={commissionerDenied ? "/" : nextPath}>
+            {commissionerDenied ? "Return to the league" : "Continue"}
           </Link>
           <button className={styles.secondaryButton} onClick={signOut} type="button">
             Sign out

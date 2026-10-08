@@ -23,12 +23,48 @@ ESPN_SWID=
 
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_SITE_URL=https://your-production-domain.example
 SUPABASE_SECRET_KEY=
+COMMISSIONER_EMAIL=
 ```
 
 - Private ESPN leagues require both `ESPN_S2` and `ESPN_SWID`. They remain server-only.
 - The Supabase publishable key can only read the derived history tables.
-- `SUPABASE_SECRET_KEY` is server-only and is used solely by the one-off import command. Never expose or commit it.
+- `NEXT_PUBLIC_SITE_URL` is the canonical production origin for authentication emails.
+- `SUPABASE_SECRET_KEY` is server-only and is used by one-off import and bootstrap commands. Never expose or commit it.
+
+## Activate commissioner access
+
+Create and confirm your account in the app first. Set `COMMISSIONER_EMAIL` to
+that exact email address, then preview the one-time assignment:
+
+```sh
+npm run auth:bootstrap
+```
+
+The dry run prints the confirmed auth user ID and refuses missing, duplicate,
+unconfirmed, or conflicting users. Apply the assignment only after checking
+that identity:
+
+```sh
+npm run auth:bootstrap -- --apply
+```
+
+The command requires `SUPABASE_SECRET_KEY` and never runs in the browser. It
+will not replace an existing commissioner or convert a team membership.
+
+Production email redirects also require Supabase dashboard configuration. In
+Authentication → URL Configuration:
+
+1. Set **Site URL** to the exact production origin, without a localhost value.
+2. Add `http://localhost:3000/**` for local development.
+3. Add the appropriate Vercel preview pattern only if preview sign-ins are
+   needed. Keep the production entry exact.
+
+Set the same production origin in Vercel as `NEXT_PUBLIC_SITE_URL`. If the
+confirmation email template was customized, use `{{ .RedirectTo }}` for its
+confirmation link instead of `{{ .SiteURL }}` so the redirect requested by the
+app is preserved.
 
 ## Historical import
 
