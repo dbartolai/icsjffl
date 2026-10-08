@@ -122,3 +122,12 @@ next season, then store weekly rosters and box scores with coverage rows. A
 historical backfill can safely import drafts and 2018 through 2025 weekly
 lineups. It must present old ownership changes as inferred and leave 2017
 lineup analytics disabled.
+
+## Backfill reconciliation sample
+
+On October 8, 2026, the historical importer made one read-only request for
+2018 scoring period 1. ESPN returned one complete period with 159 roster
+entries. The importer marked roster, lineup, actual-score, and projection
+coverage confirmed. It left injury, eligibility, lineup-rule, and transaction
+evidence unavailable. This is a bounded smoke check, not a claim that every
+historical week is complete.

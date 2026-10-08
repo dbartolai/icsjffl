@@ -1,7 +1,7 @@
 import "server-only";
 import { EspnError } from "../client";
 import { buildCurrentPlayerImport, normalizePlayerPeriod, normalizeTransactions } from "./normalize";
-import type { CurrentPlayerImport } from "./types";
+import type { CurrentPlayerImport, PlayerPeriod } from "./types";
 
 type JsonObject = Record<string, unknown>;
 
@@ -73,8 +73,9 @@ async function getJson(url: URL, requestHeaders: HeadersInit, fetcher: typeof fe
   }
 }
 
-function summaryDetails(payload: unknown, expectedSeason: number) {
+function summaryDetails(payload: unknown, expectedLeagueId: string, expectedSeason: number) {
   const summary = object(payload);
+  const leagueId = number(summary?.id);
   const season = number(summary?.seasonId);
   const status = object(summary?.status);
   const first = number(status?.firstScoringPeriod) ?? 1;
@@ -96,6 +97,8 @@ function summaryDetails(payload: unknown, expectedSeason: number) {
       )
     : null;
   if (
+    leagueId === null ||
+    String(leagueId) !== expectedLeagueId ||
     season !== expectedSeason ||
     latest === null ||
     latest < first ||
@@ -105,6 +108,35 @@ function summaryDetails(payload: unknown, expectedSeason: number) {
     throw new EspnError("ESPN returned incomplete player season data.");
   }
   return { first, latest, teamIds, lineupSlotCounts };
+}
+
+async function playerSeasonDetails(input: {
+  leagueId: string;
+  season: number;
+  requestHeaders: HeadersInit;
+  fetcher: typeof fetch;
+}) {
+  const summaryUrl = leagueUrl(input.leagueId, input.season);
+  for (const view of ["mTeam", "mSettings"]) summaryUrl.searchParams.append("view", view);
+  return summaryDetails(
+    await getJson(summaryUrl, input.requestHeaders, input.fetcher),
+    input.leagueId,
+    input.season,
+  );
+}
+
+async function playerPeriodPayload(input: {
+  leagueId: string;
+  season: number;
+  scoringPeriodId: number;
+  requestHeaders: HeadersInit;
+  fetcher: typeof fetch;
+}) {
+  const periodUrl = leagueUrl(input.leagueId, input.season);
+  periodUrl.searchParams.set("scoringPeriodId", String(input.scoringPeriodId));
+  periodUrl.searchParams.append("view", "mRoster");
+  periodUrl.searchParams.append("view", "mBoxscore");
+  return getJson(periodUrl, input.requestHeaders, input.fetcher);
 }
 
 function transactionEvidenceStatus(payload: unknown) {
@@ -151,19 +183,16 @@ export async function fetchCurrentPlayerImport(options: {
     observedAt,
   });
 
-  const summaryUrl = leagueUrl(leagueId, options.season);
-  for (const view of ["mTeam", "mSettings"]) summaryUrl.searchParams.append("view", view);
-  const details = summaryDetails(
-    await getJson(summaryUrl, requestHeaders, fetcher),
-    options.season,
-  );
+  const details = await playerSeasonDetails({ leagueId, season: options.season, requestHeaders, fetcher });
   const periods = [];
   for (let scoringPeriodId = details.first; scoringPeriodId <= details.latest; scoringPeriodId += 1) {
-    const periodUrl = leagueUrl(leagueId, options.season);
-    periodUrl.searchParams.set("scoringPeriodId", String(scoringPeriodId));
-    periodUrl.searchParams.append("view", "mRoster");
-    periodUrl.searchParams.append("view", "mBoxscore");
-    const payload = await getJson(periodUrl, requestHeaders, fetcher);
+    const payload = await playerPeriodPayload({
+      leagueId,
+      season: options.season,
+      scoringPeriodId,
+      requestHeaders,
+      fetcher,
+    });
     periods.push(
       normalizePlayerPeriod({
         leagueId,
@@ -179,4 +208,68 @@ export async function fetchCurrentPlayerImport(options: {
     );
   }
   return buildCurrentPlayerImport({ leagueId, season: options.season, periods, transactions });
+}
+
+export type HistoricalPlayerImport = {
+  leagueId: string;
+  season: number;
+  periods: PlayerPeriod[];
+  transactions: [];
+};
+
+export type HistoricalPlayerImportUnavailable = {
+  leagueId: null;
+  season: 2017;
+  reason: "ESPN does not retain weekly roster or box-score evidence for 2017.";
+};
+
+export async function fetchHistoricalPlayerImport(options: {
+  season: number;
+  firstScoringPeriod?: number;
+  lastScoringPeriod?: number;
+  fetcher?: typeof fetch;
+  observedAt?: () => Date;
+}): Promise<HistoricalPlayerImport | HistoricalPlayerImportUnavailable> {
+  if (options.season === 2017) {
+    return {
+      leagueId: null,
+      season: 2017,
+      reason: "ESPN does not retain weekly roster or box-score evidence for 2017.",
+    };
+  }
+  if (!Number.isInteger(options.season) || options.season < 2018 || options.season > 2025) {
+    throw new EspnError("Historical player imports support seasons 2017 through 2025.");
+  }
+  const { leagueId, s2, swid } = config();
+  const fetcher = options.fetcher ?? fetch;
+  const requestHeaders = headers(s2, swid);
+  const observedAt = (options.observedAt ?? (() => new Date()))().toISOString();
+  const details = await playerSeasonDetails({ leagueId, season: options.season, requestHeaders, fetcher });
+  const first = options.firstScoringPeriod ?? details.first;
+  const last = options.lastScoringPeriod ?? details.latest;
+  if (!Number.isInteger(first) || !Number.isInteger(last) || first < details.first || last > details.latest || first > last) {
+    throw new EspnError("Requested scoring periods are outside ESPN's reported historical range.");
+  }
+  const periods: PlayerPeriod[] = [];
+  for (let scoringPeriodId = first; scoringPeriodId <= last; scoringPeriodId += 1) {
+    const payload = await playerPeriodPayload({
+      leagueId,
+      season: options.season,
+      scoringPeriodId,
+      requestHeaders,
+      fetcher,
+    });
+    periods.push(normalizePlayerPeriod({
+      leagueId,
+      season: options.season,
+      scoringPeriodId,
+      expectedTeamIds: details.teamIds,
+      payload,
+      observedAt,
+      transactionEvidenceStatus: "unavailable",
+      lineupSlotCounts: null,
+      suppressHistoricalFields: true,
+    }));
+  }
+  return { leagueId, season: options.season, periods, transactions: [] };
 }
