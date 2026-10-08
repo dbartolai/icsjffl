@@ -154,7 +154,10 @@ export function normalizePlayerPeriod(input: {
     throw new Error("The scoring period is invalid.");
   }
   const payload = object(input.payload);
-  if (!payload || number(payload.seasonId) !== input.season) {
+  if (!payload || String(number(payload.id)) !== input.leagueId) {
+    throw new Error("ESPN returned a player period for another league.");
+  }
+  if (number(payload.seasonId) !== input.season) {
     throw new Error("ESPN returned a player period for another season.");
   }
   if (number(payload.scoringPeriodId) !== input.scoringPeriodId) {

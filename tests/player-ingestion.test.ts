@@ -49,6 +49,7 @@ function periodPayload(overrides: Record<string, unknown> = {}) {
   const first = entry(101, 11.25);
   const second = entry(202, 8.5);
   return {
+    id: 123,
     seasonId: 2026,
     scoringPeriodId: 1,
     teams: [
@@ -205,6 +206,7 @@ test("fetches activity before it requests only ESPN-reported periods", async () 
     }
     if (!url.searchParams.has("scoringPeriodId")) {
       return Response.json({
+        id: 123,
         seasonId: 2026,
         scoringPeriodId: 2,
         status: { firstScoringPeriod: 1, latestScoringPeriod: 2 },
@@ -285,6 +287,7 @@ test("imports a bounded historical range with independent supported coverage", a
     const week = url.searchParams.get("scoringPeriodId");
     if (!week) {
       return Response.json({
+        id: 123,
         seasonId: 2020,
         scoringPeriodId: 18,
         status: { firstScoringPeriod: 1, latestScoringPeriod: 18 },
@@ -329,6 +332,7 @@ test("fails closed when a retained historical period omits an expected roster", 
     const url = new URL(String(input));
     if (!url.searchParams.has("scoringPeriodId")) {
       return Response.json({
+        id: 123,
         seasonId: 2020,
         scoringPeriodId: 18,
         status: { firstScoringPeriod: 1, latestScoringPeriod: 18 },
@@ -344,6 +348,42 @@ test("fails closed when a retained historical period omits an expected roster", 
     fetchHistoricalPlayerImport({ season: 2020, firstScoringPeriod: 1, lastScoringPeriod: 1 }),
     /every expected roster team/,
   );
+});
+
+test("rejects a historical period from another league before it can be written", () => {
+  assert.throws(
+    () => normalizePlayerPeriod({
+      leagueId: "123",
+      season: 2020,
+      scoringPeriodId: 1,
+      expectedTeamIds: ["1", "2"],
+      payload: periodPayload({ id: 999, seasonId: 2020 }),
+      observedAt: "2026-10-08T00:00:00.000Z",
+      transactionEvidenceStatus: "unavailable",
+      lineupSlotCounts: null,
+      suppressHistoricalFields: true,
+    }),
+    /another league/,
+  );
+});
+
+test("rejects a historical season summary from another league before period requests", async () => {
+  process.env.ESPN_LEAGUE_ID = "123";
+  let calls = 0;
+  global.fetch = async () => {
+    calls += 1;
+    return Response.json({
+      id: 999,
+      seasonId: 2020,
+      status: { firstScoringPeriod: 1, latestScoringPeriod: 1 },
+      teams: [{ id: 1 }, { id: 2 }],
+    });
+  };
+  await assert.rejects(
+    fetchHistoricalPlayerImport({ season: 2020, firstScoringPeriod: 1, lastScoringPeriod: 1 }),
+    /incomplete player season data/,
+  );
+  assert.equal(calls, 1);
 });
 
 test("reports 2017 as unavailable without requesting ESPN", async () => {

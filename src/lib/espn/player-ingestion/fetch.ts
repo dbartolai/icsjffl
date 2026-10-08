@@ -73,8 +73,9 @@ async function getJson(url: URL, requestHeaders: HeadersInit, fetcher: typeof fe
   }
 }
 
-function summaryDetails(payload: unknown, expectedSeason: number) {
+function summaryDetails(payload: unknown, expectedLeagueId: string, expectedSeason: number) {
   const summary = object(payload);
+  const leagueId = number(summary?.id);
   const season = number(summary?.seasonId);
   const status = object(summary?.status);
   const first = number(status?.firstScoringPeriod) ?? 1;
@@ -96,6 +97,8 @@ function summaryDetails(payload: unknown, expectedSeason: number) {
       )
     : null;
   if (
+    leagueId === null ||
+    String(leagueId) !== expectedLeagueId ||
     season !== expectedSeason ||
     latest === null ||
     latest < first ||
@@ -117,6 +120,7 @@ async function playerSeasonDetails(input: {
   for (const view of ["mTeam", "mSettings"]) summaryUrl.searchParams.append("view", view);
   return summaryDetails(
     await getJson(summaryUrl, input.requestHeaders, input.fetcher),
+    input.leagueId,
     input.season,
   );
 }
