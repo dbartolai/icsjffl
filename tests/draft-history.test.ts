@@ -4,6 +4,7 @@ import {
   fetchDraftHistory,
   previewDraftHistory,
 } from "../src/lib/espn/draft-history";
+import { persistDraftHistory } from "../src/lib/espn/draft-persistence";
 
 type Pick = {
   teamId: number;
@@ -280,4 +281,105 @@ test("preserves supported header forms for player resolution", async () => {
     });
     assert.equal(playerHeader, new Headers(headers).get("x-sentinel"));
   }
+});
+
+function draftRows(season: number, picksForSeason: Pick[]) {
+  return picksForSeason.map((pick) => ({
+    leagueId: "123",
+    season,
+    teamId: String(pick.teamId),
+    espnPlayerId: pick.playerId,
+    round: pick.roundId,
+    roundPick: pick.roundPickNumber,
+    overallPick: pick.overallPickNumber,
+    source: {
+      source: "espn:mDraftDetail" as const,
+      season,
+      sourceChecksum: "a".repeat(64),
+      observedAt: `${season}-09-01T00:00:00.000Z`,
+      evidenceStatus: "confirmed" as const,
+    },
+    player: {
+      espnPlayerId: pick.playerId,
+      displayName: `Fixture ${season} ${pick.playerId}`,
+      defaultPositionId: pick.playerId < 0 ? 16 : 1,
+      source: {
+        source: "espn:kona_player_info" as const,
+        season,
+        sourceChecksum: "b".repeat(64),
+        observedAt: `${season}-09-01T00:00:00.000Z`,
+        evidenceStatus: "confirmed" as const,
+      },
+    },
+  }));
+}
+
+function draftStore() {
+  const players = new Map<number, Record<string, unknown>>();
+  const draftPicks = new Map<string, Record<string, unknown>>();
+  let deleteLeague: string | null = null;
+  let deleteSeason: number | null = null;
+  const query = (table: "players" | "league_draft_picks") => ({
+    then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+    delete: () => query(table),
+    eq: (column: string, value: string | number) => {
+      if (column === "league_id") deleteLeague = String(value);
+      if (column === "season") {
+        deleteSeason = Number(value);
+        for (const [key, row] of draftPicks) {
+          if (row.league_id === deleteLeague && row.season === deleteSeason) draftPicks.delete(key);
+        }
+      }
+      return query(table);
+    },
+    upsert: async (rows: unknown) => {
+      for (const row of rows as Record<string, unknown>[]) {
+        if (table === "players") {
+          const existing = players.get(row.espn_player_id as number);
+          const newest = !existing || Number(row.last_seen_season) >= Number(existing.last_seen_season);
+          players.set(row.espn_player_id as number, {
+            ...(existing ?? {}),
+            ...(newest ? row : {}),
+            first_seen_season: Math.min(Number(existing?.first_seen_season ?? row.first_seen_season), Number(row.first_seen_season)),
+            last_seen_season: Math.max(Number(existing?.last_seen_season ?? row.last_seen_season), Number(row.last_seen_season)),
+          });
+        } else {
+          draftPicks.set(`${row.league_id}:${row.season}:${row.overall_pick}`, row);
+        }
+      }
+      return { error: null };
+    },
+  });
+  return { from: query, players, draftPicks };
+}
+
+test("replaces complete draft seasons, preserves player chronology, and supports reverse imports", async () => {
+  const store = draftStore();
+  const first = draftRows(2018, [picks[0], picks[1]]);
+  const latest = draftRows(2026, [picks[0], { ...picks[1], overallPickNumber: 3, roundPickNumber: 3 }]);
+  const result = await persistDraftHistory(store as never, [...latest, ...first], { expectedPickCount: 2 });
+  assert.deepEqual(result, { players: 2, picks: 4, seasons: 2 });
+  assert.equal(store.players.get(10)?.first_seen_season, 2018);
+  assert.equal(store.players.get(10)?.last_seen_season, 2026);
+  assert.equal(store.players.get(10)?.display_name, "Fixture 2026 10");
+  assert.equal(store.draftPicks.size, 4);
+
+  await persistDraftHistory(store as never, draftRows(2026, [picks[0], picks[1]]), { expectedPickCount: 2 });
+  assert.deepEqual(
+    [...store.draftPicks.values()]
+      .filter((row) => row.season === 2026)
+      .map((row) => row.overall_pick)
+      .sort(),
+    [1, 2],
+  );
+});
+
+test("rejects incomplete seasons before issuing writes", async () => {
+  const store = draftStore();
+  await assert.rejects(
+    persistDraftHistory(store as never, draftRows(2026, [picks[0]]), { expectedPickCount: 2 }),
+    /incomplete season/,
+  );
+  assert.equal(store.players.size, 0);
+  assert.equal(store.draftPicks.size, 0);
 });

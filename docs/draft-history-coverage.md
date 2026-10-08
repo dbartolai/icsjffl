@@ -26,6 +26,29 @@ players, malformed key values, missing player identities, conflicting player
 identities, season mismatches, and an invalid legacy wrapper. It does not
 print rows, player names, manager identifiers, cookies, or source payloads.
 
-Actual database backfill starts after the current-ingestion shared identity
-writer lands. This preview checks the historical source mapping without
-depending on that unmerged writer or reconstructing any weekly data.
+## Local persistence
+
+After the league seasons and teams are available in a local Supabase instance,
+run the importer with the primary checkout's environment file. It defaults to
+a read-only dry run and accepts only a loopback Supabase URL with `--apply`.
+It never writes to a hosted project.
+
+```sh
+node --conditions=react-server \
+  --env-file=/path/to/primary-checkout/.env.local \
+  --import tsx scripts/import-espn-drafts.ts
+
+node --conditions=react-server \
+  --env-file=/path/to/primary-checkout/.env.local \
+  --import tsx scripts/import-espn-drafts.ts --apply
+```
+
+The importer fetches and validates every season before it writes anything. A
+season must have exactly 160 picks and unique draft natural keys. It replaces
+the local season's picks, so a corrected ESPN response removes stale rows.
+It upserts player identities first; the shared player-observation trigger
+keeps the earliest and latest seasons and retains metadata from the newest
+observation, even when imports arrive in reverse order.
+
+This is draft-only work. It does not import weekly player entries,
+transactions, coverage rows, or scheduler data.
