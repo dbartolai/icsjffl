@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { error, next } = await searchParams;
 
   return (
     <main id="main" className={styles.page}>
@@ -25,7 +25,10 @@ export default async function LoginPage({
         </p>
       </section>
       <section className={styles.card} aria-label="Sign in form">
-        <AuthForm nextPath={safeNextPath(next)} />
+        <AuthForm
+          commissionerDenied={error === "commissioner"}
+          nextPath={safeNextPath(next)}
+        />
       </section>
     </main>
   );

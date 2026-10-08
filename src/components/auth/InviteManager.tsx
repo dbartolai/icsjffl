@@ -1,31 +1,123 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import type {
+  CommissionerInvite,
+  CommissionerLeague,
+} from "@/lib/auth/types";
 import { getAuthClient } from "@/lib/auth/client";
-import { createInviteToken, hashInviteToken } from "@/lib/auth/invites";
+import {
+  createInviteToken,
+  getInviteExpiration,
+  hashInviteToken,
+} from "@/lib/auth/invites";
 import styles from "./InviteManager.module.css";
 
-type Invite = {
-  id: string;
+type TeamRow = {
   league_id: string;
+  season: number;
   team_id: string;
-  team_label: string | null;
-  created_at: string;
-  expires_at: string;
-  accepted_at: string | null;
+  team_name: string;
+  manager_name: string | null;
 };
 
 export function InviteManager() {
-  const [leagues, setLeagues] = useState<string[]>([]);
+  const [leagues, setLeagues] = useState<CommissionerLeague[]>([]);
   const [leagueId, setLeagueId] = useState("");
   const [teamId, setTeamId] = useState("");
-  const [teamLabel, setTeamLabel] = useState("");
-  const [invites, setInvites] = useState<Invite[]>([]);
+  const [invites, setInvites] = useState<CommissionerInvite[]>([]);
   const [inviteLink, setInviteLink] = useState("");
-  const [message, setMessage] = useState("Checking commissioner access…");
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [message, setMessage] = useState("Loading commissioner access…");
+  const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const selectedLeague = leagues.find((league) => league.id === leagueId);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const client = getAuthClient();
+      if (!client) {
+        setMessage("Supabase is not configured for this deployment.");
+        setLoaded(true);
+        return;
+      }
+
+      const { data: commissionerRows, error: commissionerError } = await client
+        .from("league_memberships")
+        .select("league_id")
+        .eq("role", "commissioner");
+      if (!active) return;
+      if (commissionerError || !commissionerRows?.length) {
+        setMessage("Commissioner access could not be loaded.");
+        setLoaded(true);
+        return;
+      }
+
+      const leagueIds = commissionerRows.map((row) => row.league_id as string);
+      const [teamResult, membershipResult, inviteResult] = await Promise.all([
+        client
+          .from("league_teams")
+          .select("league_id,season,team_id,team_name,manager_name")
+          .in("league_id", leagueIds)
+          .order("season", { ascending: false })
+          .order("team_name"),
+        client
+          .from("league_memberships")
+          .select("league_id,team_id")
+          .in("league_id", leagueIds)
+          .eq("role", "member"),
+        client
+          .from("team_invites")
+          .select("id,league_id,team_id,team_label,created_at,expires_at,accepted_at")
+          .in("league_id", leagueIds)
+          .order("created_at", { ascending: false }),
+      ]);
+      if (!active) return;
+
+      const queryError = teamResult.error ?? membershipResult.error ?? inviteResult.error;
+      if (queryError) {
+        setMessage("Commissioner data could not be loaded.");
+        setLoaded(true);
+        return;
+      }
+
+      const claimedTeams = new Set(
+        (membershipResult.data ?? [])
+          .filter((row) => row.team_id)
+          .map((row) => `${row.league_id}:${row.team_id}`),
+      );
+      const teamRows = (teamResult.data ?? []) as TeamRow[];
+      const leagueOptions = leagueIds.map((id) => {
+        const season = teamRows.find((team) => team.league_id === id)?.season;
+        const currentTeams = teamRows.filter(
+          (team) => team.league_id === id && team.season === season,
+        );
+        return {
+          id,
+          season: season ?? new Date().getFullYear(),
+          teams: currentTeams.map((team) => ({
+            id: team.team_id,
+            name: team.team_name,
+            managerName: team.manager_name,
+            claimed: claimedTeams.has(`${id}:${team.team_id}`),
+          })),
+        };
+      });
+      const firstLeague = leagueOptions[0];
+      setLeagues(leagueOptions);
+      setLeagueId(firstLeague?.id ?? "");
+      setTeamId(firstLeague?.teams.find((team) => !team.claimed)?.id ?? "");
+      setInvites((inviteResult.data ?? []) as CommissionerInvite[]);
+      setMessage("");
+      setLoaded(true);
+    }
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function loadInvites() {
     const client = getAuthClient();
@@ -34,58 +126,16 @@ export function InviteManager() {
       .from("team_invites")
       .select("id,league_id,team_id,team_label,created_at,expires_at,accepted_at")
       .order("created_at", { ascending: false });
-    setInvites((data ?? []) as Invite[]);
+    setInvites((data ?? []) as CommissionerInvite[]);
   }
 
-  useEffect(() => {
-    async function load() {
-      const client = getAuthClient();
-      if (!client) {
-        setMessage("Supabase is not configured for this deployment.");
-        return;
-      }
-
-      const { data: userData } = await client.auth.getUser();
-      if (!userData.user) {
-        setSignedIn(false);
-        setMessage("Sign in with a commissioner account to continue.");
-        return;
-      }
-
-      setSignedIn(true);
-      const [membershipResult, inviteResult] = await Promise.all([
-        client
-          .from("league_memberships")
-          .select("league_id")
-          .eq("role", "commissioner"),
-        client
-          .from("team_invites")
-          .select(
-            "id,league_id,team_id,team_label,created_at,expires_at,accepted_at",
-          )
-          .order("created_at", { ascending: false }),
-      ]);
-
-      if (membershipResult.error) {
-        setMessage(membershipResult.error.message);
-        return;
-      }
-
-      const allowedLeagues = (membershipResult.data ?? []).map(
-        (row) => row.league_id as string,
-      );
-      setLeagues(allowedLeagues);
-      setLeagueId(allowedLeagues[0] ?? "");
-      setInvites((inviteResult.data ?? []) as Invite[]);
-      setMessage(
-        allowedLeagues.length
-          ? ""
-          : "This account is not a commissioner for any league.",
-      );
-    }
-
-    void load();
-  }, []);
+  function selectLeague(nextLeagueId: string) {
+    setLeagueId(nextLeagueId);
+    const nextLeague = leagues.find((league) => league.id === nextLeagueId);
+    setTeamId(nextLeague?.teams.find((team) => !team.claimed)?.id ?? "");
+    setInviteLink("");
+    setMessage("");
+  }
 
   async function createInvite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -98,11 +148,10 @@ export function InviteManager() {
 
     const token = createInviteToken();
     const tokenHash = await hashInviteToken(token);
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = getInviteExpiration();
     const { error } = await client.rpc("create_team_invite", {
       target_league_id: leagueId,
       target_team_id: teamId,
-      target_team_label: teamLabel,
       target_token_hash: tokenHash,
       target_expires_at: expiresAt.toISOString(),
     });
@@ -115,8 +164,6 @@ export function InviteManager() {
 
     const link = `${window.location.origin}/invite?token=${token}`;
     setInviteLink(link);
-    setTeamId("");
-    setTeamLabel("");
     setBusy(false);
     await loadInvites();
   }
@@ -126,22 +173,12 @@ export function InviteManager() {
     setMessage("Invite link copied.");
   }
 
-  if (signedIn === false) {
+  if (!loaded || !leagues.length) {
     return (
-      <div className={styles.notice}>
-        <p>{message}</p>
-        <Link
-          className={styles.primaryButton}
-          href="/login?next=%2Fcommissioner%2Finvites"
-        >
-          Sign in
-        </Link>
-      </div>
+      <p className={styles.notice}>
+        {message || "No leagues are assigned to this commissioner."}
+      </p>
     );
-  }
-
-  if (!leagues.length) {
-    return <p className={styles.notice}>{message}</p>;
   }
 
   return (
@@ -149,33 +186,37 @@ export function InviteManager() {
       <form className={styles.form} onSubmit={createInvite}>
         <label>
           League
-          <select value={leagueId} onChange={(event) => setLeagueId(event.target.value)}>
+          <select value={leagueId} onChange={(event) => selectLeague(event.target.value)}>
             {leagues.map((league) => (
-              <option key={league} value={league}>
-                {league}
+              <option key={league.id} value={league.id}>
+                {league.id} · {league.season}
               </option>
             ))}
           </select>
         </label>
         <label>
-          ESPN team slot ID
-          <input
+          Team
+          <select
             onChange={(event) => setTeamId(event.target.value)}
-            placeholder="For example: 7"
             required
             value={teamId}
-          />
-        </label>
-        <label>
-          Team name <span>optional</span>
-          <input
-            onChange={(event) => setTeamLabel(event.target.value)}
-            placeholder="The Sunday Scaries"
-            value={teamLabel}
-          />
+          >
+            {!teamId ? <option value="">No unclaimed teams available</option> : null}
+            {selectedLeague?.teams.map((team) => (
+              <option disabled={team.claimed} key={team.id} value={team.id}>
+                {team.name}
+                {team.managerName ? ` · ${team.managerName}` : ""}
+                {team.claimed ? " · claimed" : ""}
+              </option>
+            ))}
+          </select>
         </label>
         <p className={styles.help}>Links expire in seven days and work once.</p>
-        <button className={styles.primaryButton} disabled={busy} type="submit">
+        <button
+          className={styles.primaryButton}
+          disabled={busy || !teamId}
+          type="submit"
+        >
           {busy ? "Creating…" : "Create invite link"}
         </button>
       </form>
