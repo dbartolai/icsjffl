@@ -51,6 +51,8 @@ export type RecordBookData = {
   }>;
 };
 
+const SHOW_EDITORIAL_HIGHLIGHTS: boolean = false;
+
 function formatRecordValue(value: number, unit?: string) {
   const formatted = value.toLocaleString("en-US", {
     maximumFractionDigits: 2,
@@ -165,22 +167,24 @@ export function RecordBookView({ data }: { data: RecordBookData }) {
         </div>
       </section>
 
-      <section className="record-report">
-        <div>
-          <p className="editorial-kicker">{data.headline.eyebrow}</p>
-          <h2>{data.headline.title}</h2>
-          <p>{data.headline.summary}</p>
-        </div>
-        {data.blowoutLeaders[0] && (
-          <div className="report-score">
-            <span>All-time margin</span>
-            <strong>{data.blowoutLeaders[0].value.toFixed(1)}</strong>
-            <p>
-              {data.blowoutLeaders[0].team} · {data.blowoutLeaders[0].season}
-            </p>
+      {SHOW_EDITORIAL_HIGHLIGHTS ? (
+        <section className="record-report">
+          <div>
+            <p className="editorial-kicker">{data.headline.eyebrow}</p>
+            <h2>{data.headline.title}</h2>
+            <p>{data.headline.summary}</p>
           </div>
-        )}
-      </section>
+          {data.blowoutLeaders[0] && (
+            <div className="report-score">
+              <span>All-time margin</span>
+              <strong>{data.blowoutLeaders[0].value.toFixed(1)}</strong>
+              <p>
+                {data.blowoutLeaders[0].team} · {data.blowoutLeaders[0].season}
+              </p>
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <section className="record-card-grid" aria-label="All-time records">
         {data.records.map((record, index) => (

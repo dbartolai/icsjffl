@@ -1,7 +1,6 @@
 import type {
   FranchiseAnalytics,
   LeagueAnalytics,
-  RivalryAnalytics,
 } from "@/lib/analytics/types";
 import styles from "./AnalyticsDashboard.module.css";
 
@@ -50,42 +49,6 @@ function MetricCard({
   );
 }
 
-function RivalryCard({ rivalry }: { rivalry: RivalryAnalytics }) {
-  const leader =
-    rivalry.teamAWins === rivalry.teamBWins
-      ? "Series tied"
-      : rivalry.teamAWins > rivalry.teamBWins
-        ? `${rivalry.teamAName} leads`
-        : `${rivalry.teamBName} leads`;
-  return (
-    <article className={styles.rivalryCard}>
-      <div className={styles.rivalryMeta}>
-        <span>{rivalry.games} meetings</span>
-        <span>{leader}</span>
-      </div>
-      <div className={styles.rivalryTeams}>
-        <div>
-          <strong>{rivalry.teamAName}</strong>
-          <span>{rivalry.teamAWins} wins</span>
-        </div>
-        <b>
-          {rivalry.teamAWins}
-          <i>–</i>
-          {rivalry.teamBWins}
-        </b>
-        <div>
-          <strong>{rivalry.teamBName}</strong>
-          <span>{rivalry.teamBWins} wins</span>
-        </div>
-      </div>
-      <p>
-        {rivalry.ties ? `${rivalry.ties} tied · ` : ""}
-        {decimal(Math.abs(rivalry.pointMargin))} total points separate them
-      </p>
-    </article>
-  );
-}
-
 export function AnalyticsDashboard({ data }: { data: LeagueAnalytics }) {
   const maxScore = Math.max(
     1,
@@ -107,7 +70,7 @@ export function AnalyticsDashboard({ data }: { data: LeagueAnalytics }) {
           <h1>Analytics</h1>
           <p className={styles.intro}>
             Weekly scores retold as expected wins, schedule fortune, scoring
-            context, and the rivalries behind {data.leagueName}.
+            context, and team-by-team performance across {data.leagueName}.
           </p>
         </div>
         <form className={styles.filter} action="/analytics" method="get">
@@ -222,12 +185,22 @@ export function AnalyticsDashboard({ data }: { data: LeagueAnalytics }) {
               </div>
               <div className={styles.barGroup} aria-label={`${team.teamName} scoring averages`}>
                 <div>
-                  <span style={{ width: `${(team.pointsForPerGame / maxScore) * 100}%` }} />
                   <b>{decimal(team.pointsForPerGame)}</b>
+                  <span className={styles.barTrack}>
+                    <span
+                      className={styles.barFill}
+                      style={{ width: `${(team.pointsForPerGame / maxScore) * 100}%` }}
+                    />
+                  </span>
                 </div>
                 <div>
-                  <span style={{ width: `${(team.pointsAgainstPerGame / maxScore) * 100}%` }} />
                   <b>{decimal(team.pointsAgainstPerGame)}</b>
+                  <span className={styles.barTrack}>
+                    <span
+                      className={styles.barFill}
+                      style={{ width: `${(team.pointsAgainstPerGame / maxScore) * 100}%` }}
+                    />
+                  </span>
                 </div>
               </div>
             </article>
@@ -293,21 +266,6 @@ export function AnalyticsDashboard({ data }: { data: LeagueAnalytics }) {
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
-
-      <section className={styles.rivalrySection} aria-labelledby="rivalries-title">
-        <div className={styles.sectionHeading}>
-          <div>
-            <p className={styles.eyebrow}>HEAD TO HEAD</p>
-            <h2 id="rivalries-title">Rivalry ledger</h2>
-          </div>
-          <p>Longest-running series appear first. Tighter records break ties.</p>
-        </div>
-        <div className={styles.rivalryGrid}>
-          {data.rivalries.slice(0, 6).map((rivalry) => (
-            <RivalryCard rivalry={rivalry} key={rivalry.id} />
-          ))}
         </div>
       </section>
 

@@ -44,6 +44,7 @@ a:focus-visible, button:focus-visible, select:focus-visible {
 .shell { margin: 0 auto; max-width: 1440px; width: min(calc(100% - 64px), 1440px); }
 .muted { color: var(--muted); }
 .positive { color: var(--green); }
+.negative { color: var(--red); }
 
 .topbar {
   backdrop-filter: blur(12px);
@@ -177,6 +178,7 @@ h2, h3, p { margin-top: 0; }
 .overview-stat:last-child { border: 0; }
 .stat-label { color: var(--muted); display: block; font-size: 9px; font-weight: 700; letter-spacing: 1.2px; }
 .overview-value { font-size: 29px; font-variant-numeric: tabular-nums; font-weight: 700; letter-spacing: -1px; margin: 13px 0 8px; }
+.overview-team-name { color: var(--cobalt-dark); font-size: 21px; letter-spacing: -.45px; line-height: 1.15; }
 .stat-suffix { color: var(--muted); font-size: 12px; letter-spacing: 0; }
 .dashboard-grid { display: grid; gap: 28px; grid-template-columns: minmax(0, 1.9fr) minmax(280px, 1fr); }
 .section-heading, .record-section-heading { align-items: center; display: flex; gap: 12px; justify-content: space-between; }
