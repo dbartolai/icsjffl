@@ -4,6 +4,10 @@ import { createClient } from "@supabase/supabase-js";
 import { EspnError } from "../client";
 import { importEspnSeasons, type SeasonImportResult } from "./history-import";
 import {
+  importCurrentPlayerSeason,
+  persistCurrentPlayerImport,
+} from "../player-ingestion";
+import {
   SupabaseSyncRunStore,
   type SyncFreshness,
   type SyncRunStore,
@@ -137,10 +141,17 @@ export async function syncCurrentSeason(): Promise<EspnSyncResult> {
     season,
     store: new SupabaseSyncRunStore(supabase),
     importSeason: async () => {
+      const playerImport =
+        process.env.ESPN_PLAYER_IMPORT_ENABLED === "true"
+          ? await importCurrentPlayerSeason({ season })
+          : null;
       const [result] = await importEspnSeasons({
         seasons: [season],
         supabase,
       });
+      if (playerImport) {
+        await persistCurrentPlayerImport(supabase, playerImport.data);
+      }
       return result;
     },
   });
