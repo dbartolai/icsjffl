@@ -31,6 +31,15 @@ async function main() {
         periods: data.periods.length,
         entries: data.periods.reduce((count, period) => count + period.entries.length, 0),
         transactions: data.transactions.length,
+        actualScorePeriods: data.periods.filter(
+          (period) => period.coverage.actualScoreEvidenceStatus === "confirmed",
+        ).length,
+        projectionPeriods: data.periods.filter(
+          (period) => period.coverage.projectionEvidenceStatus === "confirmed",
+        ).length,
+        confirmedTransactionPeriods: data.periods.filter(
+          (period) => period.coverage.transactionEvidenceStatus === "confirmed",
+        ).length,
       }),
     );
     return;

@@ -107,6 +107,14 @@ function summaryDetails(payload: unknown, expectedSeason: number) {
   return { first, latest, teamIds, lineupSlotCounts };
 }
 
+function transactionEvidenceStatus(payload: unknown) {
+  const activity = object(payload);
+  if (!activity || !Array.isArray(activity.topics)) {
+    throw new EspnError("ESPN returned incomplete transaction activity data.");
+  }
+  return activity.topics.length < 500 ? "confirmed" : "unverified";
+}
+
 export async function fetchCurrentPlayerImport(options: {
   season: number;
   fetcher?: typeof fetch;
@@ -135,6 +143,7 @@ export async function fetchCurrentPlayerImport(options: {
     }),
   );
   const activityPayload = await getJson(activityUrl, activityHeaders, fetcher);
+  const activityEvidenceStatus = transactionEvidenceStatus(activityPayload);
   const transactions = normalizeTransactions({
     leagueId,
     season: options.season,
@@ -163,8 +172,9 @@ export async function fetchCurrentPlayerImport(options: {
         expectedTeamIds: details.teamIds,
         payload,
         observedAt,
-        transactionEvidenceStatus: "confirmed",
-        lineupSlotCounts: details.lineupSlotCounts,
+        transactionEvidenceStatus: activityEvidenceStatus,
+        lineupSlotCounts:
+          scoringPeriodId === details.latest ? details.lineupSlotCounts : null,
       }),
     );
   }

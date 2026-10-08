@@ -11,12 +11,14 @@ import type {
 
 type Query = PromiseLike<{ error: unknown }> & {
   upsert: (rows: unknown, options: { onConflict: string }) => Promise<{ error: unknown }>;
-  delete: () => Query;
-  eq: (column: string, value: unknown) => Query;
 };
 
 export type PlayerImportStore = {
   from: (table: string) => Query;
+  rpc: (
+    functionName: string,
+    arguments_: Record<string, unknown>,
+  ) => Promise<{ error: unknown }>;
 };
 
 function error(result: { error: unknown }) {
@@ -37,20 +39,20 @@ function playerRow(player: PlayerIdentity) {
   };
 }
 
-function coverageRow(coverage: PlayerCoverage, pending = false) {
+function coverageRow(coverage: PlayerCoverage) {
   return {
     league_id: coverage.leagueId,
     season: coverage.season,
     scoring_period_id: coverage.scoringPeriodId,
-    roster_evidence_status: pending ? "unavailable" : coverage.rosterEvidenceStatus,
-    lineup_evidence_status: pending ? "unavailable" : coverage.lineupEvidenceStatus,
-    actual_score_evidence_status: pending ? "unavailable" : coverage.actualScoreEvidenceStatus,
-    projection_evidence_status: pending ? "unavailable" : coverage.projectionEvidenceStatus,
-    injury_evidence_status: pending ? "unavailable" : coverage.injuryEvidenceStatus,
+    roster_evidence_status: coverage.rosterEvidenceStatus,
+    lineup_evidence_status: coverage.lineupEvidenceStatus,
+    actual_score_evidence_status: coverage.actualScoreEvidenceStatus,
+    projection_evidence_status: coverage.projectionEvidenceStatus,
+    injury_evidence_status: coverage.injuryEvidenceStatus,
     transaction_evidence_status: coverage.transactionEvidenceStatus,
-    lineup_rule_evidence_status: pending ? "unavailable" : coverage.lineupRuleEvidenceStatus,
-    lineup_slot_counts: pending ? null : coverage.lineupSlotCounts,
-    reason: pending ? "Player period replacement is in progress." : coverage.reason,
+    lineup_rule_evidence_status: coverage.lineupRuleEvidenceStatus,
+    lineup_slot_counts: coverage.lineupSlotCounts,
+    reason: coverage.reason,
     source: coverage.source,
     source_checksum: coverage.sourceChecksum,
     observed_at: coverage.observedAt,
@@ -100,35 +102,15 @@ async function upsertPlayers(store: PlayerImportStore, input: CurrentPlayerImpor
 }
 
 async function replacePeriod(store: PlayerImportStore, period: PlayerPeriod) {
-  const { coverage } = period;
   error(
-    await store
-      .from("player_data_coverage")
-      .upsert(coverageRow(coverage, true), {
-        onConflict: "league_id,season,scoring_period_id",
-      }),
-  );
-  error(
-    await store
-      .from("player_week_entries")
-      .delete()
-      .eq("league_id", coverage.leagueId)
-      .eq("season", coverage.season)
-      .eq("scoring_period_id", coverage.scoringPeriodId),
-  );
-  error(
-    await store.from("player_week_entries").upsert(entryRows(period), {
-      onConflict: "league_id,season,scoring_period_id,espn_player_id",
-    }),
-  );
-  error(
-    await store.from("player_data_coverage").upsert(coverageRow(coverage), {
-      onConflict: "league_id,season,scoring_period_id",
+    await store.rpc("replace_player_period_snapshot", {
+      p_coverage: coverageRow(period.coverage),
+      p_entries: entryRows(period),
     }),
   );
 }
 
-function transactionRows(transaction: Transaction) {
+function transactionRows(transaction: Transaction, knownPlayerIds: ReadonlySet<number>) {
   return {
     transaction: {
       league_id: transaction.leagueId,
@@ -147,7 +129,10 @@ function transactionRows(transaction: Transaction) {
       season: transaction.season,
       provider_event_id: transaction.providerEventId,
       provider_asset_id: asset.providerAssetId,
-      espn_player_id: asset.espnPlayerId,
+      espn_player_id:
+        asset.espnPlayerId !== null && knownPlayerIds.has(asset.espnPlayerId)
+          ? asset.espnPlayerId
+          : null,
       team_id: asset.teamId,
       lineup_slot_id: asset.lineupSlotId,
       source: asset.source,
@@ -158,10 +143,14 @@ function transactionRows(transaction: Transaction) {
   };
 }
 
-async function upsertTransactions(store: PlayerImportStore, transactions: Transaction[]) {
+async function upsertTransactions(
+  store: PlayerImportStore,
+  transactions: Transaction[],
+  knownPlayerIds: ReadonlySet<number>,
+) {
   let assetCount = 0;
   for (const transaction of transactions) {
-    const rows = transactionRows(transaction);
+    const rows = transactionRows(transaction, knownPlayerIds);
     error(
       await store.from("transactions").upsert(rows.transaction, {
         onConflict: "league_id,season,provider_event_id",
@@ -184,8 +173,17 @@ export async function persistCurrentPlayerImport(
   input: CurrentPlayerImport,
 ): Promise<PlayerImportCounts> {
   const playerStore = store as PlayerImportStore;
-  const transactionAssets = await upsertTransactions(playerStore, input.transactions);
   const players = await upsertPlayers(playerStore, input);
+  const knownPlayerIds = new Set(
+    input.periods.flatMap((period) =>
+      period.entries.map((entry) => entry.espnPlayerId),
+    ),
+  );
+  const transactionAssets = await upsertTransactions(
+    playerStore,
+    input.transactions,
+    knownPlayerIds,
+  );
   for (const period of input.periods) await replacePeriod(playerStore, period);
   return {
     players,

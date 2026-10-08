@@ -130,6 +130,35 @@ test("does not turn missing projections into zeroes", () => {
   assert.deepEqual(result.entries.map((row) => row.projectedPoints), [null, null]);
 });
 
+test("rejects conflicting direct actual scores", () => {
+  const first = entry(101, 11.25);
+  const second = entry(202, 8.5);
+  const payload = periodPayload({
+    schedule: [
+      { home: { rosterForCurrentScoringPeriod: { entries: [first] } } },
+      {
+        away: {
+          rosterForCurrentScoringPeriod: { entries: [{ ...first, playerPoolEntry: { ...first.playerPoolEntry, appliedStatTotal: 12 } }, second] },
+        },
+      },
+    ],
+  });
+  assert.throws(
+    () =>
+      normalizePlayerPeriod({
+        leagueId: "123",
+        season: 2026,
+        scoringPeriodId: 1,
+        expectedTeamIds: ["1", "2"],
+        payload,
+        observedAt: "2026-10-08T00:00:00.000Z",
+        transactionEvidenceStatus: "confirmed",
+        lineupSlotCounts: { "2": 1 },
+      }),
+    /conflicting player actual scores/,
+  );
+});
+
 test("keeps unknown transaction codes unverified with provider identifiers", () => {
   const transactions = normalizeTransactions({
     leagueId: "123",
@@ -202,6 +231,8 @@ test("fetches activity before it requests only ESPN-reported periods", async () 
   };
   const result = await fetchCurrentPlayerImport({ season: 2026 });
   assert.equal(result.periods.length, 2);
+  assert.equal(result.periods[0].coverage.lineupRuleEvidenceStatus, "unavailable");
+  assert.equal(result.periods[1].coverage.lineupRuleEvidenceStatus, "confirmed");
   assert.equal(calls.length, 4);
   assert.ok(calls[0].endsWith("/communication/:summary"));
   assert.deepEqual(calls.map((call) => call.split(":").at(-1)), ["summary", "summary", "1", "2"]);
@@ -210,8 +241,7 @@ test("fetches activity before it requests only ESPN-reported periods", async () 
 test("replaces a period and refreshes corrected scores without stale rows", async () => {
   const rows = new Map<string, Record<string, unknown>>();
   const from = (table: string) => {
-    const predicates: Array<[string, unknown]> = [];
-    const query = {
+    return {
       async upsert(value: Record<string, unknown> | Record<string, unknown>[]) {
         for (const row of Array.isArray(value) ? value : [value]) {
           const key = [table, row.league_id, row.season, row.scoring_period_id, row.espn_player_id ?? row.provider_event_id].join(":");
@@ -219,26 +249,28 @@ test("replaces a period and refreshes corrected scores without stale rows", asyn
         }
         return { error: null };
       },
-      delete() {
-        return query;
-      },
-      eq(column: string, value: unknown) {
-        predicates.push([column, value]);
-        return query;
-      },
-      then(resolve: (value: { error: null }) => unknown) {
-        for (const [key, row] of rows) {
-          if (key.startsWith(`${table}:`) && predicates.every(([column, value]) => row[column] === value)) rows.delete(key);
-        }
-        return Promise.resolve({ error: null }).then(resolve);
-      },
     };
-    return query;
+  };
+  const rpc = async (_name: string, args: Record<string, unknown>) => {
+    const coverage = args.p_coverage as Record<string, unknown>;
+    for (const [key, row] of rows) {
+      if (
+        key.startsWith("player_week_entries:") &&
+        row.league_id === coverage.league_id &&
+        row.season === coverage.season &&
+        row.scoring_period_id === coverage.scoring_period_id
+      ) rows.delete(key);
+    }
+    for (const row of args.p_entries as Record<string, unknown>[]) {
+      const key = ["player_week_entries", row.league_id, row.season, row.scoring_period_id, row.espn_player_id].join(":");
+      rows.set(key, row);
+    }
+    return { error: null };
   };
   const data: CurrentPlayerImport = { leagueId: "123", season: 2026, periods: [normalized()], transactions: [] };
-  await persistCurrentPlayerImport({ from } as never, data);
+  await persistCurrentPlayerImport({ from, rpc } as never, data);
   data.periods[0].entries[0].actualPoints = 19.5;
-  await persistCurrentPlayerImport({ from } as never, data);
+  await persistCurrentPlayerImport({ from, rpc } as never, data);
   const entries = [...rows.entries()].filter(([key]) => key.startsWith("player_week_entries:"));
   assert.equal(entries.length, 2);
   assert.equal(entries.find(([, row]) => row.espn_player_id === 101)?.[1].actual_points, 19.5);

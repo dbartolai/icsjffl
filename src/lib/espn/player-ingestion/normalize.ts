@@ -127,7 +127,10 @@ function actualPoints(payload: JsonObject) {
         const entry = object(entryValue);
         const id = entry ? playerId(entry) : null;
         const points = number(object(entry?.playerPoolEntry)?.appliedStatTotal);
-        if (id === null || points === null || values.has(id)) continue;
+        if (id === null || points === null) continue;
+        if (values.has(id) && values.get(id) !== points) {
+          throw new Error("ESPN returned conflicting player actual scores.");
+        }
         values.set(id, points);
       }
     }
@@ -172,6 +175,7 @@ export function normalizePlayerPeriod(input: {
   );
   const hasLineupRules =
     input.lineupSlotCounts !== null &&
+    Object.keys(input.lineupSlotCounts).length > 0 &&
     Object.values(input.lineupSlotCounts).every((count) => Number.isInteger(count) && count >= 0);
   const sourceChecksum = checksum({
     scoringPeriodId: input.scoringPeriodId,
@@ -263,13 +267,17 @@ export function normalizeTransactions(input: {
   for (const topicValue of array(payload?.topics)) {
     const topic = object(topicValue);
     const topicId = identifier(topic?.id);
-    if (!topicId) continue;
-    for (const messageValue of array(topic?.messages)) {
+    if (!topicId || !Array.isArray(topic?.messages)) {
+      throw new Error("ESPN returned an incomplete transaction topic.");
+    }
+    for (const messageValue of topic.messages) {
       const message = object(messageValue);
       const messageId = identifier(message?.id);
       const date = number(message?.date);
       const type = number(message?.messageTypeId);
-      if (!message || !messageId || date === null || type === null) continue;
+      if (!message || !messageId || date === null || type === null) {
+        throw new Error("ESPN returned an incomplete transaction message.");
+      }
       const sourceChecksum = checksum({ topicId, message });
       const assets = array(message.assets).flatMap((assetValue) => {
         const asset = object(assetValue);
