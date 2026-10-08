@@ -17,8 +17,8 @@ That number is an audit baseline for this league, not a draft-size rule.
 Each validated row carries the natural keys for `league_draft_picks`:
 `league_id`, `season`, `overall_pick`, `round`, `round_pick`, and
 `espn_player_id`, plus the draft team reference. It also carries resolved
-player identity and separate source checksum, observation time, and confirmed
-evidence metadata for the draft and player responses. Negative ESPN IDs are
+player identity and separate source season, checksum, observation time, and
+confirmed evidence metadata for the draft and player responses. Negative ESPN IDs are
 valid and cover D/ST entries.
 
 The module rejects duplicate overall picks, duplicate round picks, duplicate
