@@ -1,0 +1,57 @@
+.page {
+  display: grid;
+  gap: clamp(42px, 8vw, 110px);
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 460px);
+  margin: 0 auto;
+  max-width: 1180px;
+  min-height: calc(100vh - 72px);
+  padding: clamp(70px, 10vw, 140px) 32px;
+}
+
+.intro {
+  align-self: center;
+  max-width: 620px;
+}
+
+.kicker {
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.2px;
+  margin-bottom: 22px;
+}
+
+.intro h1 {
+  font-family: var(--editorial-font);
+  font-size: clamp(48px, 7vw, 86px);
+  letter-spacing: -4px;
+  line-height: 0.94;
+  margin: 0 0 26px;
+}
+
+.intro > p:last-child {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.7;
+  max-width: 540px;
+}
+
+.card {
+  align-self: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--panel-shadow);
+  padding: clamp(28px, 4vw, 42px);
+}
+
+@media (max-width: 780px) {
+  .page {
+    grid-template-columns: 1fr;
+    padding: 54px 22px 72px;
+  }
+
+  .intro h1 {
+    letter-spacing: -2.5px;
+  }
+}
