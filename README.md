@@ -84,6 +84,26 @@ The import is idempotent. It upserts public, derived season/team/game rows and s
 
 RLS is enabled on every history table. Derived history is publicly readable for this no-login MVP; ESPN snapshots remain service-role-only. When commissioner invites and authentication are added, replace the three public read policies with league-membership policies.
 
+## Historical player backfill
+
+Backfill one historical season at a time. The command is a dry run unless you
+pass `--apply`:
+
+```sh
+npm run players:historical:import -- --season 2018
+npm run players:historical:import -- --season 2018 --from-week 1 --to-week 4
+```
+
+Use smaller week ranges to resume a failed or interrupted run. ESPN's retained
+2018 through 2025 weekly roster and box-score data supports separate roster,
+lineup, actual-score, and projection coverage. The importer does not create
+historical transactions, or infer historical injuries, eligibility, or lineup
+rules. `--season 2017` returns an explicit unavailable marker because ESPN did
+not retain usable weekly evidence for that year.
+
+`--apply` is intentionally limited to a local Supabase URL for database proof.
+It cannot write production data.
+
 ## Record Book
 
 `/history` includes:

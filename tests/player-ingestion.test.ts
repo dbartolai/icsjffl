@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { fetchCurrentPlayerImport } from "../src/lib/espn/player-ingestion/fetch";
+import { fetchCurrentPlayerImport, fetchHistoricalPlayerImport } from "../src/lib/espn/player-ingestion/fetch";
 import { normalizePlayerPeriod, normalizeTransactions } from "../src/lib/espn/player-ingestion/normalize";
 import { persistCurrentPlayerImport } from "../src/lib/espn/player-ingestion/store";
 import type { CurrentPlayerImport } from "../src/lib/espn/player-ingestion/types";
@@ -275,4 +275,88 @@ test("replaces a period and refreshes corrected scores without stale rows", asyn
   const entries = [...rows.entries()].filter(([key]) => key.startsWith("player_week_entries:"));
   assert.equal(entries.length, 2);
   assert.equal(entries.find(([, row]) => row.espn_player_id === 101)?.[1].actual_points, 19.5);
+});
+
+test("imports a bounded historical range with independent supported coverage", async () => {
+  process.env.ESPN_LEAGUE_ID = "123";
+  const requests: number[] = [];
+  global.fetch = async (input) => {
+    const url = new URL(String(input));
+    const week = url.searchParams.get("scoringPeriodId");
+    if (!week) {
+      return Response.json({
+        seasonId: 2020,
+        scoringPeriodId: 18,
+        status: { firstScoringPeriod: 1, latestScoringPeriod: 18 },
+        teams: [{ id: 1 }, { id: 2 }],
+      });
+    }
+    requests.push(Number(week));
+    const payload = periodPayload({ seasonId: 2020, scoringPeriodId: Number(week) });
+    for (const team of payload.teams) {
+      for (const row of (
+        team as { roster: { entries: Array<{ playerPoolEntry: { player: { stats: Array<{ scoringPeriodId: number }> } } }> } }
+      ).roster.entries) {
+        row.playerPoolEntry.player.stats[0].scoringPeriodId = Number(week);
+      }
+    }
+    return Response.json(payload);
+  };
+  const result = await fetchHistoricalPlayerImport({
+    season: 2020,
+    firstScoringPeriod: 2,
+    lastScoringPeriod: 3,
+  });
+  assert.ok(!("reason" in result));
+  assert.deepEqual(requests, [2, 3]);
+  assert.equal(result.periods.length, 2);
+  for (const period of result.periods) {
+    assert.equal(period.coverage.rosterEvidenceStatus, "confirmed");
+    assert.equal(period.coverage.lineupEvidenceStatus, "confirmed");
+    assert.equal(period.coverage.actualScoreEvidenceStatus, "confirmed");
+    assert.equal(period.coverage.projectionEvidenceStatus, "confirmed");
+    assert.equal(period.coverage.injuryEvidenceStatus, "unavailable");
+    assert.equal(period.coverage.lineupRuleEvidenceStatus, "unavailable");
+    assert.equal(period.coverage.transactionEvidenceStatus, "unavailable");
+    assert.ok(period.entries.every((entry) => entry.eligibleLineupSlotIds === null));
+    assert.ok(period.entries.every((entry) => entry.injuryDesignation === null));
+  }
+});
+
+test("fails closed when a retained historical period omits an expected roster", async () => {
+  process.env.ESPN_LEAGUE_ID = "123";
+  global.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (!url.searchParams.has("scoringPeriodId")) {
+      return Response.json({
+        seasonId: 2020,
+        scoringPeriodId: 18,
+        status: { firstScoringPeriod: 1, latestScoringPeriod: 18 },
+        teams: [{ id: 1 }, { id: 2 }],
+      });
+    }
+    return Response.json(periodPayload({
+      seasonId: 2020,
+      teams: [{ id: 1, roster: { entries: [entry(101, 11.25)] } }],
+    }));
+  };
+  await assert.rejects(
+    fetchHistoricalPlayerImport({ season: 2020, firstScoringPeriod: 1, lastScoringPeriod: 1 }),
+    /every expected roster team/,
+  );
+});
+
+test("reports 2017 as unavailable without requesting ESPN", async () => {
+  let calls = 0;
+  global.fetch = async () => {
+    calls += 1;
+    return Response.json({});
+  };
+  const result = await fetchHistoricalPlayerImport({ season: 2017 });
+  assert.deepEqual(result, {
+    leagueId: null,
+    season: 2017,
+    reason: "ESPN does not retain weekly roster or box-score evidence for 2017.",
+  });
+  assert.equal(calls, 0);
 });
