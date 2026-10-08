@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --conditions=react-server --import tsx --test tests/*.test.ts",
+    "espn:audit-player-data": "node --env-file=.env.local --import tsx scripts/audit-espn-player-data.ts",
     "history:check": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-espn-history.ts --dry-run",
     "history:import": "node --conditions=react-server --env-file=.env.local --import tsx scripts/import-espn-history.ts"
   },
