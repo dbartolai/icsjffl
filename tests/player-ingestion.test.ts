@@ -233,6 +233,7 @@ test("fetches activity before it requests only ESPN-reported periods", async () 
   assert.equal(result.periods.length, 2);
   assert.equal(result.periods[0].coverage.lineupRuleEvidenceStatus, "unavailable");
   assert.equal(result.periods[1].coverage.lineupRuleEvidenceStatus, "confirmed");
+  assert.equal(result.periods[0].coverage.transactionEvidenceStatus, "unverified");
   assert.equal(calls.length, 4);
   assert.ok(calls[0].endsWith("/communication/:summary"));
   assert.deepEqual(calls.map((call) => call.split(":").at(-1)), ["summary", "summary", "1", "2"]);

@@ -129,6 +129,7 @@ function transactionRows(transaction: Transaction, knownPlayerIds: ReadonlySet<n
       season: transaction.season,
       provider_event_id: transaction.providerEventId,
       provider_asset_id: asset.providerAssetId,
+      provider_espn_player_id: asset.espnPlayerId,
       espn_player_id:
         asset.espnPlayerId !== null && knownPlayerIds.has(asset.espnPlayerId)
           ? asset.espnPlayerId
