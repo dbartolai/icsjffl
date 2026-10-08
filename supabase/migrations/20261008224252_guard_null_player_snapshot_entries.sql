@@ -1,4 +1,4 @@
-create function public.replace_player_period_snapshot(
+create or replace function public.replace_player_period_snapshot(
   p_coverage jsonb,
   p_entries jsonb
 )
@@ -63,6 +63,3 @@ begin
   select * from jsonb_populate_recordset(null::public.player_week_entries, p_entries);
 end;
 $$;
-
-revoke all on function public.replace_player_period_snapshot(jsonb, jsonb) from public, anon, authenticated;
-grant execute on function public.replace_player_period_snapshot(jsonb, jsonb) to service_role;
