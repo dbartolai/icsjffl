@@ -101,8 +101,16 @@ historical transactions, or infer historical injuries, eligibility, or lineup
 rules. `--season 2017` returns an explicit unavailable marker because ESPN did
 not retain usable weekly evidence for that year.
 
-`--apply` is intentionally limited to a local Supabase URL for database proof.
-It cannot write production data.
+`--apply` is intentionally limited to a local Supabase URL. Production writes
+require an explicit project-verified opt-in after a successful dry run:
+
+```sh
+npm run players:historical:import -- --season 2018 --apply-production \
+  --expected-project-ref kolfqdrpssngbineozjd
+```
+
+The importer rejects any other project URL or ref. It keeps 2017 unavailable
+and does not add unsupported historical facts.
 
 ## Record Book
 

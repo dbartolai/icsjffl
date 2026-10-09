@@ -31,7 +31,16 @@ print rows, player names, manager identifiers, cookies, or source payloads.
 After the league seasons and teams are available in a local Supabase instance,
 run the importer with the primary checkout's environment file. It defaults to
 a read-only dry run and accepts only a loopback Supabase URL with `--apply`.
-It never writes to a hosted project.
+Production persistence requires both an exact project URL and an explicit opt-in:
+
+```sh
+node --conditions=react-server \
+  --env-file=/path/to/primary-checkout/.env.local \
+  --import tsx scripts/import-espn-drafts.ts --apply-production \
+  --expected-project-ref kolfqdrpssngbineozjd
+```
+
+The command rejects any other project ref or URL.
 
 ```sh
 node --conditions=react-server \
