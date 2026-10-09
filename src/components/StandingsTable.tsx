@@ -1,7 +1,9 @@
+import Link from "next/link";
+import { currentRosterHref } from "@/lib/current-roster";
 import type { FantasyTeam } from "@/types/fantasy";
 import { TeamBadge } from "./TeamCard";
 
-export function StandingsTable({ teams }: { teams: FantasyTeam[] }) {
+export function StandingsTable({ teams, rosterLinks = false }: { teams: FantasyTeam[]; rosterLinks?: boolean }) {
   if (!teams.length)
     return <div className="panel empty-state">No teams are available yet.</div>;
   return (
@@ -31,6 +33,13 @@ export function StandingsTable({ teams }: { teams: FantasyTeam[] }) {
         <tbody>
           {teams.map((team) => {
             const difference = team.pointsFor - team.pointsAgainst;
+            const teamIdentity = <div className="flex items-center gap-3">
+              <TeamBadge team={team} />
+              <div>
+                <div className="font-medium">{team.name}</div>
+                <div className="muted mt-1 text-xs font-normal">{team.manager}</div>
+              </div>
+            </div>;
             return (
               <tr key={team.id}>
                 <td>
@@ -39,15 +48,7 @@ export function StandingsTable({ teams }: { teams: FantasyTeam[] }) {
                   </span>
                 </td>
                 <th scope="row">
-                  <div className="flex items-center gap-3">
-                    <TeamBadge team={team} />
-                    <div>
-                      <div className="font-medium">{team.name}</div>
-                      <div className="muted mt-1 text-xs font-normal">
-                        {team.manager}
-                      </div>
-                    </div>
-                  </div>
+                  {rosterLinks ? <Link href={currentRosterHref(team.id)} title="View current roster" className="block">{teamIdentity}</Link> : teamIdentity}
                 </th>
                 <td className="numeric whitespace-nowrap">
                   {team.wins}–{team.losses}–{team.ties}

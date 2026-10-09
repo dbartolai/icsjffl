@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { currentRosterHref } from "@/lib/current-roster";
 import type {
   FranchiseAnalytics,
   LeagueAnalytics,
@@ -42,7 +44,7 @@ function MetricCard({
   return (
     <article className={`${styles.metricCard} ${styles[tone]}`}>
       <p>{label}</p>
-      <strong>{team?.teamName ?? "Not enough games"}</strong>
+      <strong>{team ? <Link href={currentRosterHref(team.teamId)} title="View current roster">{team.teamName}</Link> : "Not enough games"}</strong>
       <span>{team ? value : "—"}</span>
       <small>{detail}</small>
     </article>
@@ -178,7 +180,7 @@ export function AnalyticsDashboard({ data }: { data: LeagueAnalytics }) {
           {data.franchises.map((team) => (
             <article className={styles.scoreRow} key={team.teamId}>
               <div className={styles.teamLabel}>
-                <strong>{team.teamName}</strong>
+                <strong><Link href={currentRosterHref(team.teamId)} title="View current roster">{team.teamName}</Link></strong>
                 <span>
                   {signed(team.pointsForVsAverage)} PF vs avg · {signed(team.pointsAgainstVsAverage)} PA vs avg
                 </span>
@@ -241,7 +243,7 @@ export function AnalyticsDashboard({ data }: { data: LeagueAnalytics }) {
                 <tr key={team.teamId}>
                   <td>{index + 1}</td>
                   <th scope="row">
-                    <strong>{team.teamName}</strong>
+                    <strong><Link href={currentRosterHref(team.teamId)} title="View current roster">{team.teamName}</Link></strong>
                     <span>{team.managerName ?? `Franchise ID ${team.teamId}`}</span>
                   </th>
                   <td>{record(team)}</td>

@@ -3,6 +3,7 @@ import { StandingsTable } from "@/components/StandingsTable";
 import { MatchupCard } from "@/components/MatchupCard";
 import { getLeagueData } from "@/lib/league";
 import { EspnError } from "@/lib/espn/client";
+import { currentRosterHref } from "@/lib/current-roster";
 import { getRecordBookData } from "@/lib/record-book";
 
 export const dynamic = "force-dynamic";
@@ -105,7 +106,7 @@ export default async function Home() {
         <div className="overview-stat">
           <span className="stat-label">LEAGUE LEADER</span>
           <div className="overview-value overview-team-name">
-            {leader?.name ?? "No standings yet"}
+            {leader && source === "espn" ? <Link href={currentRosterHref(leader.id)} title="View current roster">{leader.name}</Link> : leader?.name ?? "No standings yet"}
           </div>
           <p className="muted text-xs">
             {leader ? `${leader.wins}–${leader.losses}–${leader.ties}` : "—"}
@@ -114,7 +115,7 @@ export default async function Home() {
         <div className="overview-stat">
           <span className="stat-label">TOP SCORER</span>
           <div className="overview-value overview-team-name">
-            {topScorer?.name ?? "No scores yet"}
+            {topScorer && source === "espn" ? <Link href={currentRosterHref(topScorer.id)} title="View current roster">{topScorer.name}</Link> : topScorer?.name ?? "No scores yet"}
           </div>
           <p className="muted text-xs">
             {topScorer ? `${topScorer.pointsFor.toFixed(2)} pts` : "—"}
@@ -140,7 +141,7 @@ export default async function Home() {
             </div>
             <span className="subtle-pill">{league.teams.length} teams</span>
           </div>
-          <StandingsTable teams={league.teams} />
+          <StandingsTable teams={league.teams} rosterLinks={source === "espn"} />
           <p className="muted mt-3 text-xs">
             PF: points for · PA: points against · DIFF: point differential
           </p>
@@ -162,6 +163,7 @@ export default async function Home() {
                   key={matchup.id}
                   matchup={matchup}
                   teams={league.teams}
+                  rosterLinks={source === "espn"}
                 />
               ))
             ) : (
