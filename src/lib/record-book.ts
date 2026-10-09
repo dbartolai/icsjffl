@@ -126,6 +126,7 @@ function leader(
   return {
     rank,
     team: teamFor(seasons, game.season, game.teamId)?.name ?? "Unknown team",
+    teamId: game.teamId,
     owner: managerFor(seasons, game.season, game.teamId),
     value,
     season: game.season,
@@ -160,6 +161,7 @@ export async function getRecordBookData(
       value: highScore.points,
       unit: "pts",
       team: teamFor(seasons, highScore.season, highScore.teamId)?.name ?? "Unknown team",
+      teamId: highScore.teamId,
       opponent:
         teamFor(seasons, highScore.season, highScore.opponentTeamId)?.name,
       season: highScore.season,
@@ -173,6 +175,7 @@ export async function getRecordBookData(
       value: blowout.margin,
       unit: "pts",
       team: blowoutTeam?.name ?? "Unknown team",
+      teamId: blowout.teamId,
       opponent: blowoutOpponent?.name,
       season: blowout.season,
       week: blowout.week,
@@ -186,6 +189,7 @@ export async function getRecordBookData(
       value: highLoss.points,
       unit: "pts",
       team: teamFor(seasons, highLoss.season, highLoss.teamId)?.name ?? "Unknown team",
+      teamId: highLoss.teamId,
       opponent:
         teamFor(seasons, highLoss.season, highLoss.opponentTeamId)?.name,
       season: highLoss.season,
@@ -200,6 +204,7 @@ export async function getRecordBookData(
       value: lowWin.points,
       unit: "pts",
       team: teamFor(seasons, lowWin.season, lowWin.teamId)?.name ?? "Unknown team",
+      teamId: lowWin.teamId,
       opponent: teamFor(seasons, lowWin.season, lowWin.opponentTeamId)?.name,
       season: lowWin.season,
       week: lowWin.week,
@@ -217,6 +222,7 @@ export async function getRecordBookData(
       return {
         rank: index + 1,
         team: summary.latestName,
+        teamId: summary.teamId,
         owner: latestSeason
           ? managerFor(seasons, latestSeason.season, summary.teamId)
           : undefined,

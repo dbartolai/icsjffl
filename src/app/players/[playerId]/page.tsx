@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { currentRosterHref } from "@/lib/current-roster";
 import { formatPosition, getPlayerHistory, parsePlayerId, parseSeason, parseWeek } from "@/lib/player-history";
 import styles from "../players.module.css";
 
@@ -16,12 +17,6 @@ function points(value: number | null, evidence: string) {
 
 function teamName(teamNames: Map<string, string>, season: number, teamId: string) {
   return teamNames.get(`${season}:${teamId}`) ?? "Unknown team";
-}
-
-function teamHref(teamId: string, season: number, week?: number) {
-  const params = new URLSearchParams({ season: season.toString() });
-  if (week) params.set("week", week.toString());
-  return `/players/teams/${encodeURIComponent(teamId)}?${params}`;
 }
 
 export default async function PlayerPage({
@@ -53,11 +48,11 @@ export default async function PlayerPage({
         <button type="submit">Apply</button>
       </form>
       <section className={styles.detailGrid}>
-        <div className={styles.detailPanel}><p className="editorial-kicker">DRAFT HISTORY</p>{history.drafts.length ? <ul>{history.drafts.map((draft) => <li key={`${draft.season}-${draft.overall_pick}`}><strong>{draft.season}</strong><span><Link href={teamHref(draft.team_id, draft.season)}>{teamName(history.teamNames, draft.season, draft.team_id)}</Link></span><small>Round {draft.round}, pick {draft.round_pick}, overall {draft.overall_pick}</small></li>)}</ul> : <p>No draft record is available for this filter.</p>}</div>
+        <div className={styles.detailPanel}><p className="editorial-kicker">DRAFT HISTORY</p>{history.drafts.length ? <ul>{history.drafts.map((draft) => <li key={`${draft.season}-${draft.overall_pick}`}><strong>{draft.season}</strong><span><Link href={currentRosterHref(draft.team_id)} title="View current roster">{teamName(history.teamNames, draft.season, draft.team_id)}</Link></span><small>Round {draft.round}, pick {draft.round_pick}, overall {draft.overall_pick}</small></li>)}</ul> : <p>No draft record is available for this filter.</p>}</div>
         <div className={styles.detailPanel}><p className="editorial-kicker">COVERAGE NOTES</p>{history.coverage.length ? <ul>{history.coverage.map((coverage) => <li key={`${coverage.season}-${coverage.scoring_period_id}`}><strong>{coverage.season}{coverage.scoring_period_id ? ` · Week ${coverage.scoring_period_id}` : " · Season"}</strong><span>Roster {coverage.roster_evidence_status}; lineup {coverage.lineup_evidence_status}; actual {coverage.actual_score_evidence_status}; projection {coverage.projection_evidence_status}</span><small>{coverage.reason}</small></li>)}</ul> : <p>No coverage note is available for this filter.</p>}</div>
       </section>
       <section className={styles.weekly}><div className={styles.weeklyHeading}><p className="editorial-kicker">WEEKLY OBSERVATIONS</p><p>Actual and projection are separate source fields. A recorded lineup slot is shown as supplied; it is not reclassified as starter or bench.</p></div>
-        {history.weeks.length ? <div className={styles.tableWrap}><table><thead><tr><th>Season</th><th>Week</th><th>Team</th><th>Lineup</th><th className="numeric">Actual</th><th className="numeric">Projection</th></tr></thead><tbody>{history.weeks.map((entry) => <tr key={`${entry.season}-${entry.scoring_period_id}`}><td>{entry.season}</td><td>{entry.scoring_period_id}</td><th scope="row"><Link href={teamHref(entry.team_id, entry.season, entry.scoring_period_id)}>{teamName(history.teamNames, entry.season, entry.team_id)}</Link></th><td>{entry.lineup_evidence_status === "confirmed" && entry.lineup_slot_id !== null ? `Recorded slot ${entry.lineup_slot_id}` : "Not recorded"}</td><td className="numeric">{points(entry.actual_points, entry.actual_score_evidence_status)}</td><td className="numeric">{points(entry.projected_points, entry.projection_evidence_status)}</td></tr>)}</tbody></table></div> : <div className={styles.empty}>No direct weekly player observation matches this filter. Weekly entries are available only from 2018 onward.</div>}
+        {history.weeks.length ? <div className={styles.tableWrap}><table><thead><tr><th>Season</th><th>Week</th><th>Team</th><th>Lineup</th><th className="numeric">Actual</th><th className="numeric">Projection</th></tr></thead><tbody>{history.weeks.map((entry) => <tr key={`${entry.season}-${entry.scoring_period_id}`}><td>{entry.season}</td><td>{entry.scoring_period_id}</td><th scope="row"><Link href={currentRosterHref(entry.team_id)} title="View current roster">{teamName(history.teamNames, entry.season, entry.team_id)}</Link></th><td>{entry.lineup_evidence_status === "confirmed" && entry.lineup_slot_id !== null ? `Recorded slot ${entry.lineup_slot_id}` : "Not recorded"}</td><td className="numeric">{points(entry.actual_points, entry.actual_score_evidence_status)}</td><td className="numeric">{points(entry.projected_points, entry.projection_evidence_status)}</td></tr>)}</tbody></table></div> : <div className={styles.empty}>No direct weekly player observation matches this filter. Weekly entries are available only from 2018 onward.</div>}
       </section>
     </main>
   );

@@ -1,12 +1,16 @@
+import Link from "next/link";
+import { currentRosterHref } from "@/lib/current-roster";
 import type { FantasyMatchup, FantasyTeam } from "@/types/fantasy";
 import { TeamBadge } from "./TeamCard";
 
 export function MatchupCard({
   matchup,
   teams,
+  rosterLinks = false,
 }: {
   matchup: FantasyMatchup;
   teams: FantasyTeam[];
+  rosterLinks?: boolean;
 }) {
   const home = teams.find((team) => team.id === matchup.homeTeamId);
   const away = teams.find((team) => team.id === matchup.awayTeamId);
@@ -28,7 +32,7 @@ export function MatchupCard({
             <>
               <TeamBadge team={team} />
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-medium">{team.name}</h3>
+                <h3 className="text-sm font-medium">{rosterLinks ? <Link href={currentRosterHref(team.id)} title="View current roster">{team.name}</Link> : team.name}</h3>
                 <p className="muted mt-1 text-xs">
                   {team.wins}–{team.losses}–{team.ties}
                 </p>

@@ -13,15 +13,9 @@
 .suggestions li[aria-selected="true"] a, .suggestions li a:hover { background: var(--wash); }
 .suggestions span, .searchEmpty { color: var(--muted); font-size: 12px; }
 .searchEmpty { margin: 12px 0 0; }
-.teamSection { margin-top: 38px; }
 .sectionHeading { align-items: end; display: flex; gap: 24px; justify-content: space-between; margin-bottom: 14px; }
 .sectionHeading h2 { font-family: var(--editorial-font); font-size: 30px; letter-spacing: -1px; margin: 7px 0 0; }
 .sectionHeading > p { color: var(--muted); font-size: 12px; margin: 0; }
-.teamList { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; }
-.teamList a { border: 1px solid var(--line); border-top: 3px solid var(--cobalt); color: var(--ink); display: grid; gap: 6px; min-height: 92px; padding: 17px; text-decoration: none; }
-.teamList a:hover { background: var(--wash); }
-.teamList strong { font-family: var(--editorial-font); font-size: 19px; }
-.teamList span { color: var(--muted); font-size: 11px; }
 .count { color: var(--muted); font-size: 12px; margin: 25px 0 11px; }
 .tableWrap { border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
 .tableWrap a { color: var(--cobalt); font-weight: 700; }
@@ -36,9 +30,6 @@
 .filters label { color: var(--muted); display: grid; font-size: 10px; font-weight: 700; gap: 6px; letter-spacing: 1px; text-transform: uppercase; }
 .filters select { background: white; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--ink); font: inherit; letter-spacing: 0; min-width: 130px; padding: 9px; text-transform: none; }
 .filters button { background: var(--cobalt); border: 1px solid var(--cobalt); border-radius: 4px; color: white; cursor: pointer; font-weight: 700; padding: 10px 15px; }
-.rosterFilters { display: grid; gap: 10px; }
-.rosterFilters .filters { width: fit-content; }
-.noWeek { background: var(--wash); border: 1px solid var(--line); color: var(--muted); font-size: 13px; margin: 0; padding: 14px; }
 .detailGrid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 28px; }
 .detailPanel { border-top: 4px solid var(--red); box-shadow: var(--panel-shadow); padding: 22px; }
 .detailPanel ul { list-style: none; margin: 18px 0 0; padding: 0; }
@@ -49,4 +40,4 @@
 .weeklyHeading { align-items: end; display: flex; gap: 26px; justify-content: space-between; margin-bottom: 13px; }
 .weeklyHeading p:last-child { color: var(--muted); font-size: 11px; line-height: 1.45; margin: 0; max-width: 550px; }
 @media (max-width: 640px) { .header { padding-top: 36px; } .header h1 { font-size: 52px; } .search { padding: 18px; } .pagination { gap: 10px; justify-content: space-between; } }
-@media (max-width: 700px) { .filters { align-items: stretch; flex-direction: column; } .filters select { width: 100%; } .detailGrid { grid-template-columns: 1fr; } .weeklyHeading, .sectionHeading { align-items: flex-start; flex-direction: column; gap: 5px; } .teamList { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .filters { align-items: stretch; flex-direction: column; } .filters select { width: 100%; } .detailGrid { grid-template-columns: 1fr; } .weeklyHeading, .sectionHeading { align-items: flex-start; flex-direction: column; gap: 5px; } }

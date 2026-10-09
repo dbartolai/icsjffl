@@ -1,6 +1,10 @@
+import Link from "next/link";
+import { currentRosterHref } from "@/lib/current-roster";
+
 export type RecordLeader = {
   rank: number;
   team: string;
+  teamId?: string;
   owner?: string;
   value: number;
   season: number;
@@ -27,6 +31,7 @@ export type RecordBookData = {
     value: number;
     unit?: string;
     team: string;
+    teamId?: string;
     opponent?: string;
     season: number;
     week?: number;
@@ -37,6 +42,7 @@ export type RecordBookData = {
   franchiseLeaders: Array<{
     rank: number;
     team: string;
+    teamId?: string;
     owner?: string;
     wins: number;
     winPct: number;
@@ -93,7 +99,7 @@ function Leaderboard({
                 .slice(0, 2)}
             </span>
             <div className="leader-team">
-              <strong>{leader.team}</strong>
+              <strong>{leader.teamId ? <Link href={currentRosterHref(leader.teamId)} title="View current roster">{leader.team}</Link> : leader.team}</strong>
               <span>
                 {leader.owner ? `${leader.owner} · ` : ""}
                 {leader.season}
@@ -192,7 +198,7 @@ export function RecordBookView({ data }: { data: RecordBookData }) {
             <span className="record-number">{String(index + 1).padStart(2, "0")}</span>
             <p>{record.label}</p>
             <strong>{formatRecordValue(record.value, record.unit)}</strong>
-            <h2>{record.team}</h2>
+            <h2>{record.teamId ? <Link href={currentRosterHref(record.teamId)} title="View current roster">{record.team}</Link> : record.team}</h2>
             <span>
               {record.opponent ? `vs ${record.opponent} · ` : ""}
               {record.season}
@@ -245,7 +251,7 @@ export function RecordBookView({ data }: { data: RecordBookData }) {
                 <tr key={`${team.rank}-${team.team}`}>
                   <td>{team.rank}</td>
                   <th scope="row">
-                    <strong>{team.team}</strong>
+                    <strong>{team.teamId ? <Link href={currentRosterHref(team.teamId)} title="View current roster">{team.team}</Link> : team.team}</strong>
                     {team.owner && <span>{team.owner}</span>}
                   </th>
                   <td className="numeric">{team.wins}</td>
