@@ -11,6 +11,40 @@ type ImportTargetOptions = {
   supabaseUrl: string;
 };
 
+export type ImportTargetFlags = {
+  apply: boolean;
+  applyProduction: boolean;
+  expectedProjectRef?: string;
+};
+
+export function parseImportTargetFlags(args: readonly string[]): ImportTargetFlags {
+  let apply = false;
+  let applyProduction = false;
+  let expectedProjectRef: string | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === "--apply") {
+      if (apply) throw new Error("--apply may only be passed once.");
+      apply = true;
+    } else if (argument === "--apply-production") {
+      if (applyProduction) throw new Error("--apply-production may only be passed once.");
+      applyProduction = true;
+    } else if (argument === "--expected-project-ref") {
+      if (expectedProjectRef !== undefined) throw new Error("--expected-project-ref may only be passed once.");
+      const value = args[++index];
+      if (!value || value.startsWith("--")) {
+        throw new Error("--expected-project-ref requires one value.");
+      }
+      expectedProjectRef = value;
+    } else {
+      throw new Error("Use --apply for local writes, or --apply-production --expected-project-ref kolfqdrpssngbineozjd.");
+    }
+  }
+
+  return { apply, applyProduction, expectedProjectRef };
+}
+
 function parseUrl(value: string) {
   try {
     return new URL(value);

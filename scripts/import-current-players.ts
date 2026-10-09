@@ -4,7 +4,7 @@ import {
   persistCurrentPlayerImport,
 } from "../src/lib/espn/player-ingestion";
 import { importEspnSeasons } from "../src/lib/espn/sync/history-import";
-import { resolveImportTarget } from "../src/lib/espn/import-target";
+import { parseImportTargetFlags, resolveImportTarget } from "../src/lib/espn/import-target";
 
 function required(name: string) {
   const value = process.env[name]?.trim();
@@ -19,15 +19,7 @@ function season() {
 
 async function main() {
   const args = process.argv.slice(2);
-  const apply = args.includes("--apply");
-  const applyProduction = args.includes("--apply-production");
-  const expectedProjectRef = args.at(args.indexOf("--expected-project-ref") + 1);
-  if (args.some((argument, index) => !["--apply", "--apply-production", "--expected-project-ref"].includes(argument) && args[index - 1] !== "--expected-project-ref")) {
-    throw new Error("Use --apply for local writes, or --apply-production --expected-project-ref kolfqdrpssngbineozjd.");
-  }
-  if (args.filter((argument) => argument === "--expected-project-ref").length > 1 || args.includes("--expected-project-ref") !== Boolean(expectedProjectRef)) {
-    throw new Error("--expected-project-ref requires one value.");
-  }
+  const { apply, applyProduction, expectedProjectRef } = parseImportTargetFlags(args);
   const target = resolveImportTarget({
     apply,
     applyProduction,

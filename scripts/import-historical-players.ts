@@ -30,9 +30,18 @@ function argumentsFor(argv: string[]): Arguments {
   let expectedProjectRef: string | undefined;
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
-    if (argument === "--apply") apply = true;
-    else if (argument === "--apply-production") applyProduction = true;
-    else if (argument === "--expected-project-ref") expectedProjectRef = argv[++index];
+    if (argument === "--apply") {
+      if (apply) throw new Error("--apply may only be passed once.");
+      apply = true;
+    } else if (argument === "--apply-production") {
+      if (applyProduction) throw new Error("--apply-production may only be passed once.");
+      applyProduction = true;
+    } else if (argument === "--expected-project-ref") {
+      if (expectedProjectRef !== undefined) throw new Error("--expected-project-ref may only be passed once.");
+      const value = argv[++index];
+      if (!value || value.startsWith("--")) throw new Error("--expected-project-ref requires one value.");
+      expectedProjectRef = value;
+    }
     else if (argument === "--season") season = positiveInteger(argv[++index] ?? "", "--season");
     else if (argument === "--from-week") firstScoringPeriod = positiveInteger(argv[++index] ?? "", "--from-week");
     else if (argument === "--to-week") lastScoringPeriod = positiveInteger(argv[++index] ?? "", "--to-week");
