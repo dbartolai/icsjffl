@@ -8,6 +8,7 @@ import { AuthStatus } from "@/components/auth/AuthStatus";
 const links = [
   { href: "/", label: "Home", enabled: true },
   { href: "/history", label: "History", enabled: true },
+  { href: "/players", label: "Players", enabled: true },
   { href: "/analytics", label: "Analytics", enabled: true },
   { href: "/trade-room", label: "Trade Room", enabled: false },
   { href: "/payouts", label: "Payouts", enabled: false },
