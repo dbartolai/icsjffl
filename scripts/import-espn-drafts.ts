@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { fetchDraftHistory } from "../src/lib/espn/draft-history";
 import { persistDraftHistory } from "../src/lib/espn/draft-persistence";
+import { resolveImportTarget } from "../src/lib/espn/import-target";
 
 const FIRST_SEASON = 2017;
 const LAST_SEASON = 2026;
@@ -13,24 +14,23 @@ function required(name: string) {
   return value;
 }
 
-function localSupabaseUrl(value: string) {
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL must be a valid local URL.");
-  }
-  if (!["localhost", "127.0.0.1", "::1"].includes(url.hostname)) {
-    throw new Error("--apply only writes to a local Supabase instance.");
-  }
-  return url.toString();
-}
-
 async function main() {
-  const apply = process.argv.includes("--apply");
-  if (process.argv.some((argument) => ![process.argv[0], process.argv[1], "--apply"].includes(argument))) {
-    throw new Error("Use --apply to write to local Supabase, or omit it for a dry run.");
+  const args = process.argv.slice(2);
+  const apply = args.includes("--apply");
+  const applyProduction = args.includes("--apply-production");
+  const expectedProjectRef = args.at(args.indexOf("--expected-project-ref") + 1);
+  if (args.some((argument, index) => !["--apply", "--apply-production", "--expected-project-ref"].includes(argument) && args[index - 1] !== "--expected-project-ref")) {
+    throw new Error("Use --apply for local writes, or --apply-production --expected-project-ref kolfqdrpssngbineozjd.");
   }
+  if (args.filter((argument) => argument === "--expected-project-ref").length > 1 || args.includes("--expected-project-ref") !== Boolean(expectedProjectRef)) {
+    throw new Error("--expected-project-ref requires one value.");
+  }
+  const target = resolveImportTarget({
+    apply,
+    applyProduction,
+    expectedProjectRef,
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  });
   const leagueId = required("ESPN_LEAGUE_ID");
   if (!/^\d+$/.test(leagueId)) throw new Error("ESPN_LEAGUE_ID must be numeric.");
   const rows = await fetchDraftHistory({
@@ -50,17 +50,17 @@ async function main() {
   if (Object.values(seasonCounts).some((count) => count !== EXPECTED_PICK_COUNT)) {
     throw new Error("Draft import will not claim a complete import with missing picks.");
   }
-  if (!apply) {
+  if (target.mode === "dry-run") {
     console.log(JSON.stringify({ mode: "dry-run", seasons: seasonCounts, picks: rows.length }));
     return;
   }
   const supabase = createClient(
-    localSupabaseUrl(required("NEXT_PUBLIC_SUPABASE_URL")),
+    target.url,
     required("SUPABASE_SECRET_KEY"),
     { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
   );
   const counts = await persistDraftHistory(supabase, rows, { expectedPickCount: EXPECTED_PICK_COUNT });
-  console.log(JSON.stringify({ mode: "apply", leagueId, ...counts, seasons: seasonCounts }));
+  console.log(JSON.stringify({ mode: target.mode, leagueId, ...counts, seasons: seasonCounts }));
 }
 
 main().catch((error: unknown) => {

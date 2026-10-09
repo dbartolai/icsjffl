@@ -1,11 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { importHistoricalPlayerSeason } from "../src/lib/espn/player-ingestion";
+import { resolveImportTarget, type ImportTarget } from "../src/lib/espn/import-target";
 
 type Arguments = {
   season: number;
   firstScoringPeriod?: number;
   lastScoringPeriod?: number;
-  apply: boolean;
+  target: ImportTarget;
 };
 
 function required(name: string) {
@@ -25,50 +26,50 @@ function argumentsFor(argv: string[]): Arguments {
   let firstScoringPeriod: number | undefined;
   let lastScoringPeriod: number | undefined;
   let apply = false;
+  let applyProduction = false;
+  let expectedProjectRef: string | undefined;
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--apply") apply = true;
+    else if (argument === "--apply-production") applyProduction = true;
+    else if (argument === "--expected-project-ref") expectedProjectRef = argv[++index];
     else if (argument === "--season") season = positiveInteger(argv[++index] ?? "", "--season");
     else if (argument === "--from-week") firstScoringPeriod = positiveInteger(argv[++index] ?? "", "--from-week");
     else if (argument === "--to-week") lastScoringPeriod = positiveInteger(argv[++index] ?? "", "--to-week");
-    else throw new Error("Use --season YEAR [--from-week N] [--to-week N] [--apply].");
+    else throw new Error("Use --season YEAR [--from-week N] [--to-week N] [--apply | --apply-production --expected-project-ref kolfqdrpssngbineozjd].");
   }
   if (!season) throw new Error("Choose one season with --season to keep each backfill run bounded.");
   if ((firstScoringPeriod === undefined) !== (lastScoringPeriod === undefined)) {
     throw new Error("Use --from-week and --to-week together.");
   }
-  return { season, firstScoringPeriod, lastScoringPeriod, apply };
-}
-
-function localSupabaseUrl() {
-  const value = required("NEXT_PUBLIC_SUPABASE_URL");
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL must be a valid local URL for --apply.");
-  }
-  if (!new Set(["localhost", "127.0.0.1", "::1"]).has(url.hostname)) {
-    throw new Error("Historical --apply only writes to a local Supabase database.");
-  }
-  return value;
+  return {
+    season,
+    firstScoringPeriod,
+    lastScoringPeriod,
+    target: resolveImportTarget({
+      apply,
+      applyProduction,
+      expectedProjectRef,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    }),
+  };
 }
 
 async function main() {
   const options = argumentsFor(process.argv.slice(2));
-  const supabase = options.apply
-    ? createClient(localSupabaseUrl(), required("SUPABASE_SECRET_KEY"), {
+  const supabase = options.target.mode !== "dry-run"
+    ? createClient(options.target.url, required("SUPABASE_SECRET_KEY"), {
         auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
       })
     : null;
   const result = await importHistoricalPlayerSeason({ ...options, supabase });
   if ("reason" in result.data) {
-    console.log(JSON.stringify({ mode: options.apply ? "apply" : "dry-run", ...result.data }));
+    console.log(JSON.stringify({ mode: options.target.mode, ...result.data }));
     return;
   }
   const data = result.data;
   console.log(JSON.stringify({
-    mode: options.apply ? "apply" : "dry-run",
+    mode: options.target.mode,
     season: data.season,
     firstScoringPeriod: data.periods.at(0)?.coverage.scoringPeriodId ?? null,
     lastScoringPeriod: data.periods.at(-1)?.coverage.scoringPeriodId ?? null,

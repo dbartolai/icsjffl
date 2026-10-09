@@ -4,6 +4,7 @@ import {
   persistCurrentPlayerImport,
 } from "../src/lib/espn/player-ingestion";
 import { importEspnSeasons } from "../src/lib/espn/sync/history-import";
+import { resolveImportTarget } from "../src/lib/espn/import-target";
 
 function required(name: string) {
   const value = process.env[name]?.trim();
@@ -17,12 +18,24 @@ function season() {
 }
 
 async function main() {
-  const apply = process.argv.includes("--apply");
-  if (process.argv.some((argument) => argument !== "--apply" && argument !== process.argv[0] && argument !== process.argv[1])) {
-    throw new Error("Use --apply to write current player data, or omit it for a dry run.");
+  const args = process.argv.slice(2);
+  const apply = args.includes("--apply");
+  const applyProduction = args.includes("--apply-production");
+  const expectedProjectRef = args.at(args.indexOf("--expected-project-ref") + 1);
+  if (args.some((argument, index) => !["--apply", "--apply-production", "--expected-project-ref"].includes(argument) && args[index - 1] !== "--expected-project-ref")) {
+    throw new Error("Use --apply for local writes, or --apply-production --expected-project-ref kolfqdrpssngbineozjd.");
   }
+  if (args.filter((argument) => argument === "--expected-project-ref").length > 1 || args.includes("--expected-project-ref") !== Boolean(expectedProjectRef)) {
+    throw new Error("--expected-project-ref requires one value.");
+  }
+  const target = resolveImportTarget({
+    apply,
+    applyProduction,
+    expectedProjectRef,
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  });
   const currentSeason = season();
-  if (!apply) {
+  if (target.mode === "dry-run") {
     const { data } = await importCurrentPlayerSeason({ season: currentSeason });
     console.log(
       JSON.stringify({
@@ -46,14 +59,14 @@ async function main() {
   }
   const leagueId = required("ESPN_LEAGUE_ID");
   const supabase = createClient(
-    required("NEXT_PUBLIC_SUPABASE_URL"),
+    target.url,
     required("SUPABASE_SECRET_KEY"),
     { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
   );
   const { data } = await importCurrentPlayerSeason({ season: currentSeason });
   await importEspnSeasons({ seasons: [currentSeason], supabase });
   const counts = await persistCurrentPlayerImport(supabase, data);
-  console.log(JSON.stringify({ mode: "apply", leagueId, season: currentSeason, ...counts }));
+  console.log(JSON.stringify({ mode: target.mode, leagueId, season: currentSeason, ...counts }));
 }
 
 main().catch((error) => {

@@ -18,4 +18,7 @@ an explicit unavailable marker and writes no weekly rows.
 
 The importer does not request 2017, does not request periods after ESPN's
 reported latest scoring period, and does not turn roster changes into
-transactions. Unknown provider transaction codes remain unverified.
+transactions. Unknown provider transaction codes remain unverified. The CLI
+defaults to a dry run. `--apply` accepts only a local Supabase URL;
+`--apply-production --expected-project-ref kolfqdrpssngbineozjd` is the only
+production write path.
