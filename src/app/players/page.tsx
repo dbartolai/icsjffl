@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { formatPosition, listPlayers } from "@/lib/player-history";
+import { getRosterTeamChoices, searchPlayers } from "@/lib/player-history";
+import PlayerSearch from "./player-search";
 import styles from "./players.module.css";
 
 export const metadata: Metadata = {
-  title: "Player history",
-  description: "Read-only ICSJ FFL player draft and weekly history.",
+  title: "Players",
+  description: "Search the ICSJ FFL player archive and browse recorded team rosters.",
 };
 
 export const dynamic = "force-dynamic";
@@ -13,54 +14,41 @@ export const dynamic = "force-dynamic";
 export default async function PlayersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string | string[]; page?: string | string[] }>;
+  searchParams: Promise<{ q?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const result = await listPlayers({
-    query: typeof params.q === "string" ? params.q : undefined,
-    page: typeof params.page === "string" ? params.page : undefined,
-  });
+  const query = typeof params.q === "string" ? params.q.trim().slice(0, 80) : "";
+  const [teams, players] = await Promise.all([
+    getRosterTeamChoices(),
+    query.length >= 2 ? searchPlayers(query) : Promise.resolve([]),
+  ]);
 
-  if (!result) {
+  if (!teams) {
     return <main id="main" className="shell"><section className={styles.empty}>Player history needs the public archive connection.</section></main>;
   }
 
-  const totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
+  const latestSeason = teams[0]?.season ?? null;
   return (
     <main id="main" className={`shell ${styles.page}`}>
       <header className={styles.header}>
         <p className="editorial-kicker">PLAYER ARCHIVE</p>
-        <h1>Player history</h1>
-        <p>Draft records begin in 2017. Direct weekly roster observations begin in 2018.</p>
+        <h1>Players</h1>
+        <p>Search every archived player, or open a roster from the most recent recorded week.</p>
       </header>
-      <form className={styles.search} action="/players" method="get">
-        <label htmlFor="player-search">Find a player</label>
-        <div>
-          <input id="player-search" name="q" defaultValue={result.query} placeholder="Search by name" />
-          <button type="submit">Search</button>
+      <PlayerSearch initialQuery={query} initialPlayers={players} latestSeason={latestSeason} />
+      <section className={styles.teamSection} aria-labelledby="team-rosters-heading">
+        <div className={styles.sectionHeading}>
+          <div><p className="editorial-kicker">TEAM ROSTERS</p><h2 id="team-rosters-heading">Recorded team rosters</h2></div>
+          {teams[0] && <p>Most recent record: {teams[0].season}, Week {teams[0].week}</p>}
         </div>
-      </form>
-      <p className={styles.count}>{result.total.toLocaleString()} players in the archive</p>
-      {result.players.length ? (
-        <section className={styles.tableWrap} aria-label="Player results">
-          <table>
-            <thead><tr><th>Player</th><th>Position</th><th>Observed</th><th /></tr></thead>
-            <tbody>{result.players.map((player) => (
-              <tr key={player.espn_player_id}>
-                <th scope="row"><Link href={`/players/${player.espn_player_id}`}>{player.display_name}</Link></th>
-                <td>{formatPosition(player.default_position_id)}</td>
-                <td>{player.first_seen_season}–{player.last_seen_season}</td>
-                <td><Link href={`/players/${player.espn_player_id}`}>View history</Link></td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </section>
-      ) : <section className={styles.empty}>No players match that search.</section>}
-      <nav className={styles.pagination} aria-label="Player result pages">
-        {result.page > 1 ? <Link href={`/players?q=${encodeURIComponent(result.query)}&page=${result.page - 1}`}>Previous</Link> : <span>Previous</span>}
-        <span>Page {result.page} of {totalPages}</span>
-        {result.page < totalPages ? <Link href={`/players?q=${encodeURIComponent(result.query)}&page=${result.page + 1}`}>Next</Link> : <span>Next</span>}
-      </nav>
+        {teams.length ? <ul className={styles.teamList}>
+          {teams.map((team) => <li key={team.teamId}>
+            <Link href={`/players/teams/${encodeURIComponent(team.teamId)}?season=${team.season}&week=${team.week}`}>
+              <strong>{team.teamName}</strong><span>Roster recorded for Week {team.week}</span>
+            </Link>
+          </li>)}
+        </ul> : <section className={styles.empty}>No recorded team roster is available yet.</section>}
+      </section>
     </main>
   );
 }
