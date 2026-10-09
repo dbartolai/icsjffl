@@ -50,6 +50,8 @@ export type PlayerHistory = {
   drafts: DraftPick[];
   weeks: PlayerWeek[];
   coverage: Coverage[];
+  availableSeasons: number[];
+  availableWeeks: number[];
   teamNames: Map<string, string>;
 };
 
@@ -83,23 +85,54 @@ export function parseWeek(value: string | undefined) {
   return Number.isInteger(week) && week > 0 && week <= 30 ? week : null;
 }
 
+export function clampPlayerPage(page: number, total: number, pageSize = PAGE_SIZE) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  return Math.min(Math.max(page, 1), totalPages);
+}
+
+export function filterDrafts(drafts: DraftPick[], season: number | null) {
+  return season ? drafts.filter((draft) => draft.season === season) : drafts;
+}
+
+export function formatPosition(positionId: number | null) {
+  const positions: Record<number, string> = {
+    1: "Quarterback",
+    2: "Running back",
+    3: "Wide receiver",
+    4: "Tight end",
+    5: "Kicker",
+    16: "D/ST",
+  };
+  return positionId === null ? "—" : positions[positionId] ?? `Position ID ${positionId}`;
+}
+
 export async function listPlayers(input: { query?: string; page?: string }) {
   const supabase = client();
   if (!supabase) return null;
   const query = input.query?.trim().slice(0, 80) ?? "";
-  const requestedPage = Number(input.page);
-  const page = Number.isInteger(requestedPage) && requestedPage > 0
-    ? Math.min(requestedPage, MAX_PAGE)
+  const rawPage = Number(input.page);
+  const requestedPage = Number.isInteger(rawPage) && rawPage > 0
+    ? Math.min(rawPage, MAX_PAGE)
     : 1;
-  let request = supabase
+  let countRequest = supabase
     .from("players")
-    .select("espn_player_id, display_name, default_position_id, first_seen_season, last_seen_season", {
-      count: "exact",
-    })
-    .order("display_name", { ascending: true })
-    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
-  if (query) request = request.ilike("display_name", `%${query}%`);
-  const { data, error, count } = await request;
+    .select("*", { count: "exact", head: true });
+  if (query) countRequest = countRequest.ilike("display_name", `%${query}%`);
+  const { count, error: countError } = await countRequest;
+  if (countError) throw new Error("Player history is unavailable.");
+
+  const page = clampPlayerPage(requestedPage, count ?? 0);
+  const request = () => {
+    let queryRequest = supabase
+      .from("players")
+      .select("espn_player_id, display_name, default_position_id, first_seen_season, last_seen_season")
+      .order("display_name", { ascending: true })
+      .order("espn_player_id", { ascending: true })
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+    if (query) queryRequest = queryRequest.ilike("display_name", `%${query}%`);
+    return queryRequest;
+  };
+  const { data, error } = await request();
   if (error) throw new Error("Player history is unavailable.");
   return {
     players: (data ?? []) as PlayerSummary[],
@@ -127,7 +160,7 @@ export async function getPlayerHistory(input: {
   if (playerResult.error) throw new Error("Player history is unavailable.");
   if (!playerResult.data) return null;
 
-  let weeksRequest = supabase
+  const weeksRequest = supabase
     .from("player_week_entries")
     .select("season, scoring_period_id, team_id, lineup_slot_id, actual_points, projected_points, lineup_evidence_status, actual_score_evidence_status, projection_evidence_status")
     .eq("league_id", currentLeagueId)
@@ -135,9 +168,6 @@ export async function getPlayerHistory(input: {
     .order("season", { ascending: false })
     .order("scoring_period_id", { ascending: false })
     .limit(250);
-  if (input.season) weeksRequest = weeksRequest.eq("season", input.season);
-  if (input.week) weeksRequest = weeksRequest.eq("scoring_period_id", input.week);
-
   let coverageRequest = supabase
     .from("player_data_coverage")
     .select("season, scoring_period_id, roster_evidence_status, lineup_evidence_status, actual_score_evidence_status, projection_evidence_status, reason")
@@ -162,8 +192,13 @@ export async function getPlayerHistory(input: {
   const error = draftResult.error ?? weeksResult.error ?? coverageResult.error;
   if (error) throw new Error("Player history is unavailable.");
 
-  const drafts = (draftResult.data ?? []) as DraftPick[];
-  const weeks = (weeksResult.data ?? []) as PlayerWeek[];
+  const allDrafts = (draftResult.data ?? []) as DraftPick[];
+  const allWeeks = (weeksResult.data ?? []) as PlayerWeek[];
+  const drafts = filterDrafts(allDrafts, input.season);
+  const weeks = allWeeks.filter((entry) =>
+    (!input.season || entry.season === input.season)
+    && (!input.week || entry.scoring_period_id === input.week),
+  );
   const teamIds = [...new Set([...drafts, ...weeks].map((row) => row.team_id))];
   const teamNames = new Map<string, string>();
   if (teamIds.length) {
@@ -182,6 +217,10 @@ export async function getPlayerHistory(input: {
     drafts,
     weeks,
     coverage: (coverageResult.data ?? []) as Coverage[],
+    availableSeasons: [...new Set([...allDrafts, ...allWeeks].map((row) => row.season))].sort((a, b) => b - a),
+    availableWeeks: [...new Set(allWeeks
+      .filter((entry) => !input.season || entry.season === input.season)
+      .map((entry) => entry.scoring_period_id))].sort((a, b) => a - b),
     teamNames,
   };
 }

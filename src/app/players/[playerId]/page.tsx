@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getPlayerHistory, parsePlayerId, parseSeason, parseWeek } from "@/lib/player-history";
+import { formatPosition, getPlayerHistory, parsePlayerId, parseSeason, parseWeek } from "@/lib/player-history";
 import styles from "../players.module.css";
 
 export const dynamic = "force-dynamic";
@@ -32,18 +32,18 @@ export default async function PlayerPage({
   const history = playerId ? await getPlayerHistory({ playerId, season, week }) : null;
   if (!history) return <main id="main" className="shell"><section className={styles.empty}><h1>Player not found</h1><p>This player is not in the public archive, or the archive is unavailable.</p><Link href="/players">Back to player search</Link></section></main>;
 
-  const seasons = [...new Set([...history.drafts.map((row) => row.season), ...history.weeks.map((row) => row.season), ...history.coverage.map((row) => row.season)])].sort((a, b) => b - a);
+  const seasons = history.availableSeasons;
   return (
     <main id="main" className={`shell ${styles.page}`}>
       <Link className={styles.back} href="/players">← Player search</Link>
       <header className={styles.header}>
         <p className="editorial-kicker">PLAYER ARCHIVE</p>
         <h1>{history.player.display_name}</h1>
-        <p>Observed in ICSJ FFL from {history.player.first_seen_season} to {history.player.last_seen_season}. Position IDs are supplied by ESPN and not translated into historical eligibility.</p>
+        <p>{formatPosition(history.player.default_position_id)}. Observed in ICSJ FFL from {history.player.first_seen_season} to {history.player.last_seen_season}. This is a source position label, not a historical eligibility claim.</p>
       </header>
       <form className={styles.filters} method="get">
         <label>Season <select name="season" defaultValue={season?.toString() ?? ""}><option value="">All seasons</option>{seasons.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
-        <label>Week <select name="week" defaultValue={week?.toString() ?? ""}><option value="">All weeks</option>{Array.from({ length: 18 }, (_, index) => index + 1).map((value) => <option key={value} value={value}>Week {value}</option>)}</select></label>
+        <label>Week <select name="week" defaultValue={week?.toString() ?? ""}><option value="">All weeks</option>{history.availableWeeks.map((value) => <option key={value} value={value}>Week {value}</option>)}</select></label>
         <button type="submit">Apply</button>
       </form>
       <section className={styles.detailGrid}>

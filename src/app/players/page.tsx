@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listPlayers } from "@/lib/player-history";
+import { formatPosition, listPlayers } from "@/lib/player-history";
 import styles from "./players.module.css";
 
 export const metadata: Metadata = {
@@ -44,11 +44,11 @@ export default async function PlayersPage({
       {result.players.length ? (
         <section className={styles.tableWrap} aria-label="Player results">
           <table>
-            <thead><tr><th>Player</th><th>Position ID</th><th>Observed</th><th /></tr></thead>
+            <thead><tr><th>Player</th><th>Position</th><th>Observed</th><th /></tr></thead>
             <tbody>{result.players.map((player) => (
               <tr key={player.espn_player_id}>
                 <th scope="row"><Link href={`/players/${player.espn_player_id}`}>{player.display_name}</Link></th>
-                <td>{player.default_position_id ?? "—"}</td>
+                <td>{formatPosition(player.default_position_id)}</td>
                 <td>{player.first_seen_season}–{player.last_seen_season}</td>
                 <td><Link href={`/players/${player.espn_player_id}`}>View history</Link></td>
               </tr>
